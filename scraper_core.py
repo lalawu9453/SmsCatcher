@@ -9,6 +9,7 @@ import time
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+import random
 import re
 from bs4 import BeautifulSoup
 # --- 讀取設定檔 ---
@@ -61,68 +62,71 @@ def freereceivesms_check_single_number(number_info, user_agent, service):
     
     driver = None
     result = None
-    try:
-        print(f"    [THREAD] 檢查號碼: {phone_number_text} ...", end="", flush=True)
+    for i in range(3):  # 最多嘗試3次
+        try:
+            print(f"    [THREAD] 檢查號碼: {phone_number_text} ...", end="", flush=True)
 
-        # 每個執行緒獨立啟動 WebDriver，但共用 Chrome 服務路徑 (Service)
-        driver = webdriver.Chrome(service=service, options=options)
-        driver.set_page_load_timeout(30)
-        
-        driver.get(number_url)
-        # === 優化點 1: 等待第一個訊息列出現 ===
-        # 尋找訊息列表的第一行元素，最多等待 10 秒
-        message_row_selector = '.container .row.border-bottom'
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, message_row_selector))
-        )
-
-        # === 優化點 2: 給 JavaScript 充足的時間執行解密並更新 DOM 內容 ===
-        time.sleep(4) # 等待訊息載入
-        # 重新從最新的 DOM 抓取內容
-        num_soup = BeautifulSoup(driver.page_source, 'html.parser')
-        
-        # 尋找所有訊息列
-        message_rows = num_soup.select(message_row_selector)
-        
-        if message_rows:
-            latest_row = message_rows[0]
-            time_element_lg = latest_row.select_one('.d-none.d-lg-block.col-lg-2 span')
-            time_element_sm = latest_row.select_one('.d-block.d-lg-none.ml-2')
+            # 每個執行緒獨立啟動 WebDriver，但共用 Chrome 服務路徑 (Service)
+            driver = webdriver.Chrome(service=service, options=options)
+            driver.set_page_load_timeout(30)
             
-            time_text = ''
-            if time_element_lg:
-                time_text = time_element_lg.get_text(strip=True)
-            elif time_element_sm:
-                time_text = time_element_sm.get_text(strip=True)
+            driver.get(number_url)
+            # === 優化點 1: 等待第一個訊息列出現 ===
+            # 尋找訊息列表的第一行元素，最多等待 10 秒
+            message_row_selector = '.container .row.border-bottom'
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, message_row_selector))
+            )
 
-            if time_text and is_within_last_hour(time_text):
-                # 抓取簡訊內容
-                sms_content_element = latest_row.select_one('.col-lg-8 div')
-                sms_content = sms_content_element.get_text(strip=True) if sms_content_element else "無法讀取簡訊內容。"
+            # === 優化點 2: 給 JavaScript 充足的時間執行解密並更新 DOM 內容 ===
+            time.sleep(4) # 等待訊息載入
+            # 重新從最新的 DOM 抓取內容
+            num_soup = BeautifulSoup(driver.page_source, 'html.parser')
+            
+            # 尋找所有訊息列
+            message_rows = num_soup.select(message_row_selector)
+            
+            if message_rows:
+                latest_row = message_rows[0]
+                time_element_lg = latest_row.select_one('.d-none.d-lg-block.col-lg-2 span')
+                time_element_sm = latest_row.select_one('.d-block.d-lg-none.ml-2')
                 
-                # === 優化點 3: 檢查是否仍為 Base64 或可讀內容 ===
-                # 簡單檢查：如果內容長度過長且包含等號，很可能是 Base64
-                if len(sms_content) > 80 and (sms_content.endswith('==') or sms_content.endswith('=')) :
-                     sms_content = " 【注意：內容可能被網站加密，請在瀏覽器中確認】"+sms_content
+                time_text = ''
+                if time_element_lg:
+                    time_text = time_element_lg.get_text(strip=True)
+                elif time_element_sm:
+                    time_text = time_element_sm.get_text(strip=True)
 
-                print(f"  -> \033[92m找到活躍號碼 (最新訊息: {time_text})\033[0m")
-                result = {
-                    'number': phone_number_text,
-                    'url': number_url,
-                    'last_sms': sms_content
-                }
+                if time_text and is_within_last_hour(time_text):
+                    # 抓取簡訊內容
+                    sms_content_element = latest_row.select_one('.col-lg-8 div')
+                    sms_content = sms_content_element.get_text(strip=True) if sms_content_element else "無法讀取簡訊內容。"
+                    
+                    # === 優化點 3: 檢查是否仍為 Base64 或可讀內容 ===
+                    # 簡單檢查：如果內容長度過長且包含等號，很可能是 Base64
+                    if len(sms_content) > 80 and (sms_content.endswith('==') or sms_content.endswith('=')) :
+                        sms_content = " 【注意：內容可能被網站加密，請在瀏覽器中確認】"+sms_content
+
+                    print(f"  -> \033[92m找到活躍號碼 (最新訊息: {time_text})\033[0m")
+                    result = {
+                        'number': phone_number_text,
+                        'url': number_url,
+                        'last_sms': sms_content
+                    }
+                else:
+                    print(f"  -> 不活躍 (最新訊息: {time_text})")
             else:
-                print(f"  -> 不活躍 (最新訊息: {time_text})")
-        else:
-            print("  -> 找不到訊息列。")
+                print("  -> 找不到訊息列。")
 
-    except WebDriverException as e:
-        print(f"  -> \033[91mSelenium 讀取失敗: {e}\033[0m")
-    except Exception as e:
-        print(f"  -> 檢查 {phone_number_text} 失敗: {e}")
-    finally:
-        if driver:
-            driver.quit()
+        except WebDriverException as e:
+            print(f"  -> \033[91mSelenium 讀取失敗: {e}\033[0m")
+        except Exception as e:
+            print(f"  -> 檢查 {phone_number_text} 失敗: {e}")
+        finally:
+            if driver:
+                driver.quit()
+        time.sleep(random.uniform(4, 8))  # 每次嘗試後稍作休息
+    
     return result
 
 
