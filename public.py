@@ -9,7 +9,7 @@ import threading
 import time
 
 import tomli
-from scraper_core import find_active_numbers   
+from scraper_core import freereceivesms_find_active_numbers   
 
 # --- ngrok 相關匯入 ---
 from pyngrok import ngrok
@@ -55,7 +55,7 @@ def update_cache():
     global cached_data
     while True:
         print("\n--- [背景更新] 開始更新資料 ---")
-        numbers = find_active_numbers(CHROME_SERVICE)
+        numbers = freereceivesms_find_active_numbers(CHROME_SERVICE)
         cached_data["numbers"] = numbers
         cached_data["timestamp"] = time.time()
         print(f"--- [背景更新] 資料更新完畢，將在 {CACHE_DURATION_SECONDS} 秒後再次更新 ---\n")

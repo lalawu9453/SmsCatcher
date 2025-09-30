@@ -9,7 +9,7 @@ import threading
 import time
 
 import tomli
-from scraper_core import find_active_numbers   
+from scraper_core import freereceivesms_find_active_numbers   
 
 # --- ngrok 相關匯入 ---
 from pyngrok import ngrok
@@ -32,6 +32,11 @@ CACHE_DURATION_SECONDS = general_config['cache_duration_seconds']
 CACHE_DURATION_MINUTES = int(CACHE_DURATION_SECONDS / 60) 
 PORT = general_config['port']
 
+if BASE_URL == "https://www.freereceivesms.com":
+    print("注意：freereceivesms.com 可能會封鎖爬蟲，導致無法取得資料。如果發生錯誤，請稍後再試。")
+
+    
+
 cached_data = {
     "numbers": None,
     "timestamp": 0
@@ -44,11 +49,12 @@ def update_cache():
     global cached_data
     while True:
         print("\n--- [背景更新] 開始更新資料 ---")
-        numbers = find_active_numbers(CHROME_SERVICE)
-        cached_data["numbers"] = numbers
-        cached_data["timestamp"] = time.time()
-        print(f"--- [背景更新] 資料更新完畢，將在 {CACHE_DURATION_SECONDS} 秒後再次更新 ---\n")
-        time.sleep(CACHE_DURATION_SECONDS)
+        if BASE_URL == "https://www.freereceivesms.com":
+            numbers = freereceivesms_find_active_numbers(CHROME_SERVICE)
+            cached_data["numbers"] = numbers
+            cached_data["timestamp"] = time.time()
+            print(f"--- [背景更新] 資料更新完畢，將在 {CACHE_DURATION_SECONDS} 秒後再次更新 ---\n")
+            time.sleep(CACHE_DURATION_SECONDS)
 
 # --- 網頁應用程式 (Flask) ---
 app = Flask(__name__)

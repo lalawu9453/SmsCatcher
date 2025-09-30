@@ -46,7 +46,7 @@ def is_within_last_hour(time_text):
     return False
 
 
-def check_single_number(number_info, user_agent, service):
+def freereceivesms_check_single_number(number_info, user_agent, service):
     """
     檢查單一號碼的函數，使用傳入的 Selenium Service 實例。
     """
@@ -77,7 +77,7 @@ def check_single_number(number_info, user_agent, service):
         )
 
         # === 優化點 2: 給 JavaScript 充足的時間執行解密並更新 DOM 內容 ===
-        time.sleep(3) # 等待訊息載入
+        time.sleep(5) # 等待訊息載入
         # 重新從最新的 DOM 抓取內容
         num_soup = BeautifulSoup(driver.page_source, 'html.parser')
         
@@ -102,7 +102,7 @@ def check_single_number(number_info, user_agent, service):
                 
                 # === 優化點 3: 檢查是否仍為 Base64 或可讀內容 ===
                 # 簡單檢查：如果內容長度過長且包含等號，很可能是 Base64
-                if len(sms_content) > 100 or sms_content.endswith('==') or sms_content.endswith('='):
+                if len(sms_content) > 80 and (sms_content.endswith('==') or sms_content.endswith('=')) :
                      sms_content = " 【注意：內容可能被網站加密，請在瀏覽器中確認】"+sms_content
 
                 print(f"  -> \033[92m找到活躍號碼 (最新訊息: {time_text})\033[0m")
@@ -126,7 +126,7 @@ def check_single_number(number_info, user_agent, service):
     return result
 
 
-def find_active_numbers(CHROME_SERVICE,country_code=COUNTRY_CODE, page=PAGE_INDEX):
+def freereceivesms_find_active_numbers(CHROME_SERVICE,country_code=COUNTRY_CODE, page=PAGE_INDEX):
     """
     取得所有號碼列表，然後使用執行緒池併發檢查號碼。
     """
@@ -182,7 +182,7 @@ def find_active_numbers(CHROME_SERVICE,country_code=COUNTRY_CODE, page=PAGE_INDE
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         # 提交所有任務，並將 CHROME_SERVICE 傳入
         future_to_number = {
-            executor.submit(check_single_number, num_info, HEADERS['User-Agent'], CHROME_SERVICE): num_info 
+            executor.submit(freereceivesms_check_single_number, num_info, HEADERS['User-Agent'], CHROME_SERVICE): num_info 
             for num_info in numbers_to_check
         }
         
