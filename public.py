@@ -169,7 +169,7 @@ if __name__ == '__main__':
         print("="*60)
         print("如果只想在本地端執行的話，請確認 config.toml 中的 ngrok_auth_token 為空字串 ''。")
         print("\033[91m[注意] ngrok Authtoken 未設定。\033[0m")
-        print("將以本地模式運行 Flask 服務。")
+        print("將以本地模式運行 Flask 服務。在Colab無法顯示網頁。")
         print("="*60)
 
     # 提示使用者安裝新套件
