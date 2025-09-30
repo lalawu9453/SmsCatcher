@@ -85,3 +85,16 @@ The core performance issue in the original code was the repeated execution of **
 | **Scraper Performance** | Repeated calls to ChromeDriverManager().install() in every thread. | **ChromeDriverManager().install() is now called only ONCE during startup.** | **Dramatically improved startup time and scraping efficiency.** Avoids unnecessary driver file checks and setup multiple times per cache update cycle. |
 
 The revised files maintain the clear separation between local and Colab initialization while incorporating the critical performance fix.
+
+
+## **💖 Contributing**
+
+This is an open-source project, and contributions of all kinds are welcome\! **Whether you are an experienced developer or a newcomer, your help is appreciated in making this tool even better\!**
+
+### [**👉Contributing**](./CONTRIBUTING.md) 
+
+We will review your contribution as soon as possible. Thank you to everyone who dedicates their time and effort to this project\!
+
+## **📄 License**
+
+This project is licensed under the [MIT License](https://www.google.com/search?q=./LICENSE).
