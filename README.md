@@ -1,7 +1,10 @@
-# **臨時簡訊接收號碼監控器 (Temporary SMS Receiver Monitor)**
+# **臨時簡訊接收號碼監控器**
+(Temporary SMS Receiver Monitor)
+---
+
 <div align="center">
 
-<img src="https://i.meee.com.tw/ikqBwaY.jpg" alt="Project Banner" style="border-radius: 10px; margin-top: 10px; margin-bottom: 10px;width: 200px; height: 200px;">
+<img src="https://i.meee.com.tw/ikqBwaY.jpg" alt="Project Banner" style="border-radius: 10px; margin-top: 10px; margin-bottom: 10px;width: 300px; height: 300px;">
 
 </div>
 
@@ -56,8 +59,9 @@
 
 使用 main.py 在您的本機電腦上執行。
 
-\# 運行主程式  
-python main.py
+#### 運行主程式  
+`uv sync`
+`uv run main.py`
 
 * 如果 config.toml 中的 ngrok\_auth\_token 是**空字串**，程式將以本地模式啟動，您只能透過 http://127.0.0.1:5000 訪問。  
 * 如果 ngrok\_auth\_token **已設定**，程式將同時啟動 Flask 服務和 ngrok 公開網址。

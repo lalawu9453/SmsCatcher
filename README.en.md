@@ -1,7 +1,7 @@
-# **🇬🇧 English Readme (Temporary SMS Receiver Monitor)**
+# **Temporary SMS Receiver Monitor**
 <div align="center">
 
-<img src="https://i.meee.com.tw/ikqBwaY.jpg" alt="Project Banner" style="border-radius: 10px; margin-top: 10px; margin-bottom: 10px;width: 200px; height: 200px;">
+<img src="https://i.meee.com.tw/ikqBwaY.jpg" alt="Project Banner" style="border-radius: 10px; margin-top: 10px; margin-bottom: 10px;width: 300px; height: 300px;">
 
 </div>
 
@@ -53,8 +53,9 @@ Edit the config.toml file to suit your needs:
 
 Run main.py on your local machine.
 
-\# Run the main application  
-python main.py
+#### Run the main application  
+`uv sync`
+`uv run main.py`
 
 * If ngrok\_auth\_token in config.toml is **empty**, the program starts in local mode only (http://127.0.0.1:5000).  
 * If the token **is set**, both the Flask service and the ngrok public tunnel will be started.
