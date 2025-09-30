@@ -12,7 +12,7 @@ country_code = "us"
 # 爬蟲自動更新的間隔時間 (秒)
 cache_duration_seconds = 300
 # 並發檢查號碼的最大執行緒數
-max_workers = 8
+max_workers = 10
 page_index = 1
 # Flask 服務埠號
 port = 5000
