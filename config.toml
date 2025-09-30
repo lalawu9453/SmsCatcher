@@ -1,0 +1,24 @@
+# config.toml
+# --- ❗️重要設定❗️ ---
+# 請將您的 ngrok Authtoken 貼在這裡
+# 如果只想在本地端執行，請設定為空字串 ''
+# 建議在 Colab/公開環境中透過命令行參數傳入，以確保安全性。
+ngrok_auth_token = ""
+
+[general]
+base_url = "https://www.freereceivesms.com"
+# 您可以更改為 'ca', 'gb' 等
+country_code = "us"
+# 爬蟲自動更新的間隔時間 (秒)
+cache_duration_seconds = 300
+# 並發檢查號碼的最大執行緒數
+max_workers = 5
+page_index = 1
+# Flask 服務埠號
+port = 5000
+
+[headers]
+User-Agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+Accept = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8"
+Accept-Language = "en-US,en;q=0.9,zh-TW;q=0.8,zh;q=0.7"
+Connection = "keep-alive"
