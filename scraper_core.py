@@ -6,6 +6,9 @@ from selenium.common.exceptions import WebDriverException
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import tomli
 import time
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
 import re
 from bs4 import BeautifulSoup
 # --- 讀取設定檔 ---
