@@ -77,7 +77,7 @@ def check_single_number(number_info, user_agent, service):
         )
 
         # === 優化點 2: 給 JavaScript 充足的時間執行解密並更新 DOM 內容 ===
-        time.sleep(5) # 等待訊息載入
+        time.sleep(3) # 等待訊息載入
         # 重新從最新的 DOM 抓取內容
         num_soup = BeautifulSoup(driver.page_source, 'html.parser')
         
@@ -102,7 +102,7 @@ def check_single_number(number_info, user_agent, service):
                 
                 # === 優化點 3: 檢查是否仍為 Base64 或可讀內容 ===
                 # 簡單檢查：如果內容長度過長且包含等號，很可能是 Base64
-                if len(sms_content) > 30 or sms_content.endswith('=='):
+                if len(sms_content) > 80 or sms_content.endswith('==')or sms_content.endswith('='):
                      sms_content = " 【注意：內容可能被網站加密，請在瀏覽器中確認】"+sms_content
 
                 print(f"  -> \033[92m找到活躍號碼 (最新訊息: {time_text})\033[0m")
