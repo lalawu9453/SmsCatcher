@@ -64,25 +64,18 @@ python main.py
 
 ### **模式二：Colab/公開執行 (Colab/Public Execution)**
 
+<a href="https://colab.research.google.com/github/LayorX/Temporary-SMS-Receiver-Monitor/blob/master/Temporary_SMS_Receiver_Monitor.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+
+[快速簡單執行Colab](/Temporary_SMS_Receiver_Monitor.ipynb)
+
 使用 public.py 專門在雲端環境中執行，它包含從命令行讀取 ngrok Token 的邏輯。
 
 **Colab 步驟:**
 
 1. 將您的 ngrok Authtoken 儲存到 Colab 的 Secrets Manager (密鑰管理器) 中，命名為 NGROK\_AUTH\_TOKEN。  
-2. 在 Colab 筆記本中，使用以下命令執行：
-
-\# 1\. 確保已安裝 Chrome (適用於 Colab 環境)  
+2. 在 Colab 筆記本中，Run all：
 
 
-\!apt-get update  
-\!wget https://dl.google.com/linux/direct/google-chrome-stable\_current\_amd64.deb
-
-\!apt install \--fix-broken \-y ./google-chrome-stable\_current\_amd64.deb
-
-\# 2\. 執行您的 Python 應用 (從 Colab Secrets 讀取 Token 並傳入)  
-from google.colab import userdata  
-ng\_token=userdata.get("NGROK\_AUTH\_TOKEN")  
-\!uv run python public.py \--ngrok\_token $ng\_token
 
 ## **💡 優化分析總結 (Optimization Summary)**
 

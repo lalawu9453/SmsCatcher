@@ -60,23 +60,19 @@ python main.py
 * If the token **is set**, both the Flask service and the ngrok public tunnel will be started.
 
 ### **Mode 2: Colab/Public Execution**
+<a href="https://colab.research.google.com/github/LayorX/Temporary-SMS-Receiver-Monitor/blob/master/Temporary_SMS_Receiver_Monitor.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+
+
+[Execute Colab Easily](/Temporary_SMS_Receiver_Monitor.ipynb)
+
 
 Use public.py, which is set up to read the ngrok token from command-line arguments, ideal for Colab Secrets.
 
 **Colab Steps:**
 
 1. Store your ngrok Authtoken in Colab's Secrets Manager, named NGROK\_AUTH\_TOKEN.  
-2. In a Colab notebook cell, execute the following commands (Chrome installation is often necessary in Colab environments):
+2. In a Colab notebook cell, execute the following commands (Chrome installation is often necessary in Colab environments)
 
-\# 1\. Ensure Chrome is installed (necessary for Colab environment)  
-\!apt-get update  
-\!wget https://dl.google.com/linux/direct/google-chrome-stable\_current\_amd64.deb  
-\!apt install \--fix-broken \-y ./google-chrome-stable\_current\_amd64.deb
-
-\# 2\. Run your Python application (reading token from Colab Secrets)  
-from google.colab import userdata  
-ng\_token=userdata.get("NGROK\_AUTH\_TOKEN")  
-\!uv run python public.py \--ngrok\_token $ng\_token
 
 ## **💡 Optimization Summary**
 
