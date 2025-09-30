@@ -55,13 +55,14 @@ Run main.py on your local machine.
 
 #### Run the main application  
 `uv sync`
+
 `uv run main.py`
 
 * If ngrok\_auth\_token in config.toml is **empty**, the program starts in local mode only (http://127.0.0.1:5000).  
 * If the token **is set**, both the Flask service and the ngrok public tunnel will be started.
 
 ### **Mode 2: Colab/Public Execution**
-<a href="https://colab.research.google.com/github/LayorX/Temporary-SMS-Receiver-Monitor/blob/master/Temporary_SMS_Receiver_Monitor.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+<a href="https://colab.research.google.com/github/LayorX/Temporary-SMS-Receiver-Monitor/blob/master/Temporary_SMS_Receiver_Monitor.ipynb" target="_blank"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 
 [Execute Colab Easily](/Temporary_SMS_Receiver_Monitor.ipynb)

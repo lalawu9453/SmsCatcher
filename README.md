@@ -61,6 +61,7 @@
 
 #### 運行主程式  
 `uv sync`
+
 `uv run main.py`
 
 * 如果 config.toml 中的 ngrok\_auth\_token 是**空字串**，程式將以本地模式啟動，您只能透過 http://127.0.0.1:5000 訪問。  
@@ -68,7 +69,7 @@
 
 ### **模式二：Colab/公開執行 (Colab/Public Execution)**
 
-<a href="https://colab.research.google.com/github/LayorX/Temporary-SMS-Receiver-Monitor/blob/master/Temporary_SMS_Receiver_Monitor.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+<a href="https://colab.research.google.com/github/LayorX/Temporary-SMS-Receiver-Monitor/blob/master/Temporary_SMS_Receiver_Monitor.ipynb" target="_blank"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 [快速簡單執行Colab](/Temporary_SMS_Receiver_Monitor.ipynb)
 
@@ -78,7 +79,7 @@
 
 1. 將您的 ngrok Authtoken 儲存到 Colab 的 Secrets Manager (密鑰管理器) 中，命名為 NGROK\_AUTH\_TOKEN。  
 2. 在 Colab 筆記本中，Run all：
-
+![](https://i.meee.com.tw/zlunIT2.png)
 
 
 ## **💡 優化分析總結 (Optimization Summary)**
