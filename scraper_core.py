@@ -77,7 +77,7 @@ def check_single_number(number_info, user_agent, service):
         )
 
         # === 優化點 2: 給 JavaScript 充足的時間執行解密並更新 DOM 內容 ===
-        time.sleep(2) # 等待訊息載入
+        time.sleep(3) # 等待訊息載入
         # 重新從最新的 DOM 抓取內容
         num_soup = BeautifulSoup(driver.page_source, 'html.parser')
         
