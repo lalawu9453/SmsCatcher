@@ -66,12 +66,20 @@ def check_single_number(number_info, user_agent, service):
         driver.set_page_load_timeout(30)
         
         driver.get(number_url)
-        time.sleep(2) # 等待訊息載入
-        
+        # === 優化點 1: 等待第一個訊息列出現 ===
+        # 尋找訊息列表的第一行元素，最多等待 10 秒
+        message_row_selector = '.container .row.border-bottom'
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, message_row_selector))
+        )
+
+        # === 優化點 2: 給 JavaScript 充足的時間執行解密並更新 DOM 內容 ===
+        time.sleep(3) # 等待訊息載入
+        # 重新從最新的 DOM 抓取內容
         num_soup = BeautifulSoup(driver.page_source, 'html.parser')
         
         # 尋找所有訊息列
-        message_rows = num_soup.select('.container .row.border-bottom')
+        message_rows = num_soup.select(message_row_selector)
         
         if message_rows:
             latest_row = message_rows[0]
@@ -89,6 +97,11 @@ def check_single_number(number_info, user_agent, service):
                 sms_content_element = latest_row.select_one('.col-lg-8 div')
                 sms_content = sms_content_element.get_text(strip=True) if sms_content_element else "無法讀取簡訊內容。"
                 
+                # === 優化點 3: 檢查是否仍為 Base64 或可讀內容 ===
+                # 簡單檢查：如果內容長度過長且包含等號，很可能是 Base64
+                if len(sms_content) > 30 and sms_content.endswith('=='):
+                     sms_content += " [注意：內容可能被網站加密，請在瀏覽器中確認]"
+
                 print(f"  -> \033[92m找到活躍號碼 (最新訊息: {time_text})\033[0m")
                 result = {
                     'number': phone_number_text,
