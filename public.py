@@ -11,38 +11,36 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import tomli
 
 # --- Selenium 相關匯入 ---
-# 我們需要 Selenium 來模擬真實的瀏覽器行為，以繞過網站的防爬蟲保護
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
+# 📌 優化：webdriver_manager 將只在主程式啟動時呼叫一次。
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.common.exceptions import WebDriverException
 
 # --- ngrok 相關匯入 ---
 from pyngrok import ngrok
 
-'''
-這個版本使用 Selenium 來模擬瀏覽器行為，並使用 ngrok 來建立公開的網址。
-'''
+# --- 全域變數定義 ---
+CHROME_SERVICE = None # 📌 儲存 Selenium Service 實例，避免重複安裝驅動程式。
+
 # --- 讀取設定檔 ---
 with open("config.toml", "rb") as f:
     config = tomli.load(f)
 
 # --- 全域設定 ---
-# 直接讀取，無需轉換型別
-NGROK_AUTH_TOKEN = config['ngrok_auth_token']
+# 預設從 config.toml 讀取
+NGROK_AUTH_TOKEN = config.get('ngrok_auth_token', '')
 
-# --- ❗️重要設定❗️ ---
+# --- ❗️重要設定：處理 Colab 命令行參數 ❗️ ---
 try:
     # 查找 --ngrok_token 參數後面的值
     token_index = sys.argv.index('--ngrok_token') + 1
     NGROK_AUTH_TOKEN = sys.argv[token_index]
     print("[配置] 成功從命令行參數讀取 ngrok Token。")
 except (ValueError, IndexError):
-    # 如果命令列找不到，則回退到 Colab secrets 或硬編碼值
-    if NGROK_AUTH_TOKEN == "在此貼上你的 ngrok Authtoken":
-        print("[配置] 警告：無法從命令行或 Colab secrets 讀取 Token，使用硬編碼值。")
-
+    if not NGROK_AUTH_TOKEN: # 如果 config.toml 中也沒有，則提示
+        print("[配置] 警告：無法從命令行或 config.toml 讀取 ngrok Token。ngrok 將無法啟動。")
 
 # 讀取區塊內的設定
 general_config = config['general']
@@ -83,9 +81,9 @@ def is_within_last_hour(time_text):
         return True
     return False
 
-def check_single_number(number_info, user_agent):
+def check_single_number(number_info, user_agent, service):
     """
-    檢查單一號碼的函數，每個執行緒會獨立運行一個 WebDriver 實例。
+    檢查單一號碼的函數，使用傳入的 Selenium Service 實例。
     """
     number_url = number_info['url']
     phone_number_text = number_info['number']
@@ -101,8 +99,9 @@ def check_single_number(number_info, user_agent):
     try:
         print(f"    [THREAD] 檢查號碼: {phone_number_text} ...", end="", flush=True)
 
-        # 每個執行緒獨立啟動 WebDriver
-        service = Service(ChromeDriverManager().install())
+        # 每個執行緒獨立啟動 WebDriver，但共用 Chrome 服務路徑 (Service)
+        # 由於 Colab 環境下 ChromeDriverManager 可能無法找到已安裝的 Chrome
+        # 這裡我們保留使用 ChromeDriverManager().install() 的 Service 實例
         driver = webdriver.Chrome(service=service, options=options)
         driver.set_page_load_timeout(30)
         
@@ -111,7 +110,7 @@ def check_single_number(number_info, user_agent):
         
         num_soup = BeautifulSoup(driver.page_source, 'html.parser')
         
-        # 尋找所有訊息列 (與 main.py 邏輯相同)
+        # 尋找所有訊息列
         message_rows = num_soup.select('.container .row.border-bottom')
         
         if message_rows:
@@ -150,15 +149,16 @@ def check_single_number(number_info, user_agent):
             driver.quit()
     return result
 
-def find_active_numbers(country_code=COUNTRY_CODE,page=PAGE_INDEX):
+def find_active_numbers(country_code=COUNTRY_CODE, page=PAGE_INDEX):
     """
-    (優化後) 取得所有號碼列表，然後使用執行緒池併發檢查號碼。
+    取得所有號碼列表，然後使用執行緒池併發檢查號碼。
     """
     print(f"[*] 正在使用 Selenium 搜尋 {country_code.upper()} 國碼的號碼...")
     numbers_to_check = []
     country_page_url = f"{BASE_URL}/{country_code}/{page}/"
     print(f"[*] 目標國家頁面: {country_page_url}")
-    # --- [修正] 步驟 1: 抓取國家主頁面並取得號碼清單 (從 main.py 移植) ---
+    
+    # --- 步驟 1: 抓取國家主頁面並取得號碼清單 (只需一個 WebDriver) ---
     driver = None
     try:
         options = Options()
@@ -168,8 +168,8 @@ def find_active_numbers(country_code=COUNTRY_CODE,page=PAGE_INDEX):
         options.add_argument(f'user-agent={HEADERS["User-Agent"]}')
         
         print("[*] 正在載入國家頁面以取得號碼清單...")
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=options)
+        # 📌 優化：使用全域的 CHROME_SERVICE
+        driver = webdriver.Chrome(service=CHROME_SERVICE, options=options)
         driver.set_page_load_timeout(30)
 
         driver.get(country_page_url)
@@ -203,9 +203,9 @@ def find_active_numbers(country_code=COUNTRY_CODE,page=PAGE_INDEX):
     # --- 步驟 2: 使用 ThreadPoolExecutor 併發執行檢查 ---
     active_numbers = []
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        # 提交所有任務
+        # 提交所有任務，並將 CHROME_SERVICE 傳入
         future_to_number = {
-            executor.submit(check_single_number, num_info, HEADERS['User-Agent']): num_info 
+            executor.submit(check_single_number, num_info, HEADERS['User-Agent'], CHROME_SERVICE): num_info 
             for num_info in numbers_to_check
         }
         
@@ -245,7 +245,7 @@ HTML_TEMPLATE = """
     <meta http-equiv="refresh" content="60">
     <title>最近一小時內活躍的簡訊號碼</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f4f7f9; color: #333; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f4f7f9; color: #333; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: flex-start; min-height: 10vh; }
         .container { background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); width: 100%; max-width: 800px; text-align: center; }
         h1 { color: #0056b3; margin-bottom: 10px; }
         h1 span { font-size: 1.2rem; color: #555; vertical-align: middle; }
@@ -331,57 +331,50 @@ def home():
 
 # --- 主程式執行區塊 ---
 if __name__ == '__main__':
-    # 檢查 ngrok Authtoken 是否已設定
-    if NGROK_AUTH_TOKEN == "在此貼上你的 ngrok Authtoken" :
-        print("="*60)
-        print("如果只想在本地端執行的話，直接把NGROK_AUTH_TOKEN=''，設定為空字串即可。")
-        print("\033[91m[錯誤] 尚未設定 ngrok Authtoken！\033[0m")
-        print("請按照以下步驟操作：")
-        print("1. 打開 .py 檔案。")
-        print("2. 找到 `NGROK_AUTH_TOKEN` 這一行。")
-        print("3. 到 https://dashboard.ngrok.com/get-started/your-authtoken 取得您的金鑰。")
-        print("4. 將金鑰貼在引號中，然後儲存檔案並重新執行。")
-        print("="*60)
-        sys.exit(1) # 結束程式
+    # 📌 優化：僅在啟動時安裝一次 WebDriver
+    print("[*] 正在檢查並安裝 ChromeDriver...")
+    # Colab 環境需要確保已安裝 Chrome，此步驟會處理驅動程式路徑
+    CHROME_SERVICE = Service(ChromeDriverManager().install()) 
+    print("[*] ChromeDriver 服務已就緒。")
 
     # 提示使用者安裝新套件
     print("="*60)
     print("重要提示：此版本已更新為使用 Selenium 和 ngrok。")
-    print("請確保您已安裝所有必要的套件。")
-    print("請在終端機執行:")
+    print("請確保您已安裝所有必要的套件。建議執行:")
     print("uv sync")
-    print("="*60)
+    print("============================================================")
     
     # 在背景啟動更新執行緒
     update_thread = threading.Thread(target=update_cache, daemon=True)
     update_thread.start()
     
-    # --- 設定並啟動 ngrok 通道 ---
+    # --- 設定並啟動 ngrok 通道 (如果 Token 存在) ---
+    if not NGROK_AUTH_TOKEN:
+        print("="*60)
+        print("\033[91m[錯誤] 尚未設定 ngrok Authtoken！\033[0m")
+        print("請在 Colab 中透過 --ngrok_token 參數傳入金鑰。")
+        print("將繼續以本地模式運行 Flask 服務 (但無法透過公開網址訪問)。")
+        print("="*60)
+        # 即使沒有 Token 也讓 Flask 啟動，方便 Colab 內測
+    
     try:
-        ngrok.set_auth_token(NGROK_AUTH_TOKEN)
-        public_url = ngrok.connect(PORT)
-        print("="*60)
-        print("程式正在啟動...")
-        print(f"目標網站: {BASE_URL}/{COUNTRY_CODE}/")
-        print(f" * 本地網址: http://127.0.0.1:{PORT}")
-        print(f" * 手機請訪問此公開網址: \033[92m{public_url}\033[0m")
-        print("="*60)
-        print(f"程式會在背景每 {CACHE_DURATION_MINUTES} 分鐘自動抓取一次最新資料。")
-        print("第一次執行時，webdriver-manager 會自動下載驅動程式，請耐心等候。")
-        print("\n\033[91m重要：請保持此視窗開啟，關閉後公開網址將會失效。\033[0m")
-        print("="*60)
-    except Exception as e:
-        print(f"\n[!] ngrok 連線失敗，請檢查您的 Authtoken 或網路狀態: {e}")
-        print("將繼續以本地模式運行 Flask 服務。")
-        print("="*60)
-        print("程式正在啟動...")
-        print(f"目標網站: {BASE_URL}/{COUNTRY_CODE}/")
-        print(f" * 本地網址: http://127.0.0.1:{PORT}")
-        print("="*60)
-        print(f"程式會在背景每 {CACHE_DURATION_MINUTES} 分鐘自動抓取一次最新資料。")
-        print("第一次執行時，webdriver-manager 會自動下載驅動程式，請耐心等候。")
-        print("\n\033[91m重要：請保持此視窗開啟，關閉後公開網址將會失效。\033[0m")
-        print("="*60)
+        if NGROK_AUTH_TOKEN:
+            ngrok.set_auth_token(NGROK_AUTH_TOKEN)
+            public_url = ngrok.connect(PORT)
+            print("="*60)
+            print("程式正在啟動...")
+            print(f"目標網站: {BASE_URL}/{COUNTRY_CODE}/")
+            print(f" * 本地網址: http://127.0.0.1:{PORT}")
+            print(f" * 手機請訪問此公開網址: \033[92m{public_url}\033[0m")
+            print("="*60)
+            print(f"程式會在背景每 {CACHE_DURATION_MINUTES} 分鐘自動抓取一次最新資料。")
+            print("\n\033[91m重要：請保持此 Colab 視窗開啟，關閉後公開網址將會失效。\033[0m")
+            print("="*60)
         
-    # 啟動網頁伺服器
-    serve(app, host="0.0.0.0", port=5000)
+        # 啟動網頁伺服器
+        serve(app, host="0.0.0.0", port=PORT)
+
+    except Exception as e:
+        print(f"\n[!] 啟動失敗: {e}")
+        # 如果 ngrok 失敗，程式會在這裡停止。
+        sys.exit(1) # 結束程式
