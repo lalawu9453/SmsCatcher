@@ -14,15 +14,17 @@ import tomli
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
-# 📌 優化：webdriver_manager 將只在主程式啟動時呼叫一次。
 from webdriver_manager.chrome import ChromeDriverManager
-from selenium.common.exceptions import WebDriverException
+from selenium.common.exceptions import WebDriverException, TimeoutException
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
 
 # --- ngrok 相關匯入 ---
 from pyngrok import ngrok
 
 # --- 全域變數定義 ---
-CHROME_SERVICE = None # 📌 儲存 Selenium Service 實例，避免重複安裝驅動程式。
+CHROME_SERVICE = None # 儲存 Selenium Service 實例，避免重複安裝驅動程式。
 
 # --- 讀取設定檔 ---
 with open("config.toml", "rb") as f:
@@ -83,7 +85,7 @@ def is_within_last_hour(time_text):
 
 def check_single_number(number_info, user_agent, service):
     """
-    檢查單一號碼的函數，使用傳入的 Selenium Service 實例。
+    檢查單一號碼的函數，使用傳入的 Selenium Service 實例，並增加等待機制處理 JS 加密/渲染。
     """
     number_url = number_info['url']
     phone_number_text = number_info['number']
@@ -99,22 +101,30 @@ def check_single_number(number_info, user_agent, service):
     try:
         print(f"    [THREAD] 檢查號碼: {phone_number_text} ...", end="", flush=True)
 
-        # 每個執行緒獨立啟動 WebDriver，但共用 Chrome 服務路徑 (Service)
-        # 由於 Colab 環境下 ChromeDriverManager 可能無法找到已安裝的 Chrome
-        # 這裡我們保留使用 ChromeDriverManager().install() 的 Service 實例
         driver = webdriver.Chrome(service=service, options=options)
         driver.set_page_load_timeout(30)
         
         driver.get(number_url)
-        time.sleep(2) # 等待訊息載入
         
+        # === 優化點 1: 等待第一個訊息列出現 ===
+        # 尋找訊息列表的第一行元素，最多等待 10 秒
+        message_row_selector = '.container .row.border-bottom'
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, message_row_selector))
+        )
+        
+        # === 優化點 2: 給 JavaScript 充足的時間執行解密並更新 DOM 內容 ===
+        # 再等待 3 秒
+        time.sleep(3) 
+        
+        # 重新從最新的 DOM 抓取內容
         num_soup = BeautifulSoup(driver.page_source, 'html.parser')
         
-        # 尋找所有訊息列
-        message_rows = num_soup.select('.container .row.border-bottom')
+        message_rows = num_soup.select(message_row_selector)
         
         if message_rows:
             latest_row = message_rows[0]
+            # 抓取時間元素
             time_element_lg = latest_row.select_one('.d-none.d-lg-block.col-lg-2 span')
             time_element_sm = latest_row.select_one('.d-block.d-lg-none.ml-2')
             
@@ -129,6 +139,11 @@ def check_single_number(number_info, user_agent, service):
                 sms_content_element = latest_row.select_one('.col-lg-8 div')
                 sms_content = sms_content_element.get_text(strip=True) if sms_content_element else "無法讀取簡訊內容。"
                 
+                # === 優化點 3: 檢查是否仍為 Base64 或可讀內容 ===
+                # 簡單檢查：如果內容長度過長且包含等號，很可能是 Base64
+                if len(sms_content) > 30 and sms_content.endswith('=='):
+                     sms_content += " [注意：內容可能被網站加密，請在瀏覽器中確認]"
+
                 print(f"  -> \033[92m找到活躍號碼 (最新訊息: {time_text})\033[0m")
                 result = {
                     'number': phone_number_text,
@@ -140,6 +155,8 @@ def check_single_number(number_info, user_agent, service):
         else:
             print("  -> 找不到訊息列。")
 
+    except TimeoutException:
+        print("  -> \033[91m等待訊息內容超時 (可能載入太慢或網站結構有變)。\033[0m")
     except WebDriverException as e:
         print(f"  -> \033[91mSelenium 讀取失敗: {e}\033[0m")
     except Exception as e:
@@ -168,7 +185,7 @@ def find_active_numbers(country_code=COUNTRY_CODE, page=PAGE_INDEX):
         options.add_argument(f'user-agent={HEADERS["User-Agent"]}')
         
         print("[*] 正在載入國家頁面以取得號碼清單...")
-        # 📌 優化：使用全域的 CHROME_SERVICE
+        # 優化：使用全域的 CHROME_SERVICE
         driver = webdriver.Chrome(service=CHROME_SERVICE, options=options)
         driver.set_page_load_timeout(30)
 

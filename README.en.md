@@ -1,7 +1,7 @@
 # **🇬🇧 English Readme (Temporary SMS Receiver Monitor)**
 <div align="center">
 
-<img src="https://i.meee.com.tw/ikqBwaY.jpg" alt="Project Banner" style="border-radius: 10px; margin-top: 10px; margin-bottom: 10px;">
+<img src="https://i.meee.com.tw/ikqBwaY.jpg" alt="Project Banner" style="border-radius: 10px; margin-top: 10px; margin-bottom: 10px;width: 200px; height: 200px;">
 
 </div>
 

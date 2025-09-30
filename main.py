@@ -6,7 +6,6 @@ from flask import Flask, render_template_string
 from waitress import serve
 import threading
 import time
-import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import tomli
 
