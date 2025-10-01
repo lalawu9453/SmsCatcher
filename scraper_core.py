@@ -125,7 +125,7 @@ def freereceivesms_check_single_number(number_info, user_agent, service):
         finally:
             if driver:
                 driver.quit()
-        time.sleep(random.uniform(4, 8))  # 每次嘗試後稍作休息
+        time.sleep(random.uniform(1, 3))  # 每次嘗試後稍作休息
     
     return result
 
