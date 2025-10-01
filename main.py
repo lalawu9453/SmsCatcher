@@ -2,14 +2,16 @@
 from webdriver_manager.chrome import ChromeDriverManager
 
 import sys
+import os # 用於 config.toml 檢查
 from selenium.webdriver.chrome.service import Service
-from flask import Flask, render_template_string
+from flask import Flask, render_template_string, request, redirect, url_for
 from waitress import serve
 import threading
 import time
+import json # 處理 JSON 格式的關鍵字清單
 
 import tomli
-from scraper_core import freereceivesms_find_active_numbers   
+from scraper_core import freereceivesms_find_active_numbers, apply_keyword_filter   
 
 # --- ngrok 相關匯入 ---
 from pyngrok import ngrok
@@ -18,8 +20,12 @@ from pyngrok import ngrok
 CHROME_SERVICE = None # 📌 儲存 Selenium Service 實例，避免重複安裝驅動程式。
 
 # --- 讀取設定檔 ---
-with open("config.toml", "rb") as f:
-    config = tomli.load(f)
+try:
+    with open("config.toml", "rb") as f:
+        config = tomli.load(f)
+except FileNotFoundError:
+    print("[致命錯誤] 找不到 config.toml 檔案，請確認檔案是否存在。")
+    sys.exit(1)
 
 # --- 全域設定 ---
 NGROK_AUTH_TOKEN = config.get('ngrok_auth_token', '')
@@ -36,19 +42,27 @@ except (ValueError, IndexError):
 
 # 讀取區塊內的設定
 general_config = config['general']
-BASE_URL = general_config['base_url']
+BASE_URL = general_config['base_urls'][0] # 📌 優化: 目前只使用列表中的第一個 URL
 COUNTRY_CODE = general_config['country_code']
 CACHE_DURATION_SECONDS = general_config['cache_duration_seconds']
 CACHE_DURATION_MINUTES = int(CACHE_DURATION_SECONDS / 60) 
 PORT = general_config['port']
 
+# 讀取預設關鍵字設定
+KEYWORDS_CONFIG = config.get('keywords', {})
+KEYWORD_SETTINGS = {
+    "filter_mode": KEYWORDS_CONFIG.get('filter_mode', 'contains'),
+    "must_include": KEYWORDS_CONFIG.get('must_include', []),
+    "must_exclude": KEYWORDS_CONFIG.get('must_exclude', [])
+}
+
 if BASE_URL == "https://www.freereceivesms.com":
     print("注意：freereceivesms.com 可能會封鎖爬蟲，導致無法取得資料。如果發生錯誤，請稍後再試。")
 
     
-
+# 儲存原始爬蟲結果 (未篩選)
 cached_data = {
-    "numbers": None,
+    "raw_numbers": None, # 儲存未篩選的原始數據
     "timestamp": 0
 }
 
@@ -60,10 +74,19 @@ def update_cache():
     while True:
         print("\n--- [背景更新] 開始更新資料 ---")
         if BASE_URL == "https://www.freereceivesms.com":
-            numbers = freereceivesms_find_active_numbers(CHROME_SERVICE)
-            cached_data["numbers"] = numbers
+            # 這裡呼叫的爬蟲函數應返回未篩選的原始數據
+            raw_numbers = freereceivesms_find_active_numbers(CHROME_SERVICE)
+            cached_data["raw_numbers"] = raw_numbers
             cached_data["timestamp"] = time.time()
-            print(f"--- [背景更新] 資料更新完畢，將在 {CACHE_DURATION_SECONDS} 秒後再次更新 ---\n")
+            
+            # 執行一次初始篩選，印出日誌
+            initial_filtered = apply_keyword_filter(
+                raw_numbers if raw_numbers is not None else [],
+                KEYWORD_SETTINGS['must_include'], 
+                KEYWORD_SETTINGS['must_exclude']
+            )
+            print(f"--- [背景更新] 資料更新完畢，原始活躍號碼 {len(raw_numbers) if raw_numbers is not None else 0} 個，初始篩選後 {len(initial_filtered)} 個。")
+            print(f"--- [背景更新] 將在 {CACHE_DURATION_SECONDS} 秒後再次更新 ---\n")
             time.sleep(CACHE_DURATION_SECONDS)
 
 # --- 網頁應用程式 (Flask) ---
@@ -76,13 +99,37 @@ HTML_TEMPLATE = """
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="refresh" content="60">
-    <title>最近一小時內活躍的簡訊號碼</title>
+    <title>活躍簡訊號碼與關鍵字篩選</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f4f7f9; color: #333; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: flex-start; min-height: 10vh; }
         .container { background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); width: 100%; max-width: 800px; text-align: center; }
         h1 { color: #0056b3; margin-bottom: 10px; }
         h1 span { font-size: 1.2rem; color: #555; vertical-align: middle; }
         p.info { font-size: 0.9em; color: #777; margin-top: 0; margin-bottom: 20px; }
+        
+        /* 篩選器樣式 */
+        .filter-box { background-color: #e6f7ff; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: left; border: 1px solid #b3e0ff; }
+        .filter-box label { font-weight: bold; color: #0056b3; display: block; margin-bottom: 5px; margin-top: 10px; }
+        .filter-box input[type="text"], .filter-box select { 
+            width: 100%; 
+            padding: 8px; 
+            margin-bottom: 10px; 
+            border: 1px solid #ccc; 
+            border-radius: 4px; 
+            box-sizing: border-box; 
+        }
+        .filter-box button { 
+            background-color: #007bff; 
+            color: white; 
+            padding: 10px 15px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        .filter-box button:hover { background-color: #0056b3; }
+        
         ul { list-style-type: none; padding: 0; }
         li { 
             background-color: #e9f5ff; 
@@ -118,11 +165,77 @@ HTML_TEMPLATE = """
         .error { color: #d9534f; font-weight: bold; }
         .loading { color: #428bca; font-weight: bold; }
     </style>
+    <script>
+        // 將 Python 變數傳遞給 JavaScript
+        const initialInclude = {{ initial_include | tojson }};
+        const initialExclude = {{ initial_exclude | tojson }};
+        const initialMode = {{ initial_mode | tojson }};
+
+        // 格式化關鍵字清單為逗號分隔的字串
+        function formatKeywords(keywords) {
+            return Array.isArray(keywords) ? keywords.join(', ') : '';
+        }
+
+        // 頁面載入時設定初始值
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('must_include').value = formatKeywords(initialInclude);
+            document.getElementById('must_exclude').value = formatKeywords(initialExclude);
+            document.getElementById('filter_mode').value = initialMode;
+        });
+        
+        // 提交表單時將逗號分隔字串轉換為 JSON 陣列
+        function prepareSubmit() {
+            const includeInput = document.getElementById('must_include').value;
+            const excludeInput = document.getElementById('must_exclude').value;
+            
+            // 將逗號分隔的字串轉換為陣列
+            const includeArray = includeInput.split(',').map(s => s.trim()).filter(s => s.length > 0);
+            const excludeArray = excludeInput.split(',').map(s => s.trim()).filter(s => s.length > 0);
+            
+            // 將陣列存入隱藏欄位 (JSON 格式)
+            document.getElementById('json_include').value = JSON.stringify(includeArray);
+            document.getElementById('json_exclude').value = JSON.stringify(excludeArray);
+            
+            return true; // 允許表單提交
+        }
+
+    </script>
 </head>
 <body>
     <div class="container">
-        <h1>最近一小時內活躍的簡訊號碼 <span>({{ country_name }})</span></h1>
-        <p class="info">頁面每 {{ update_min }} 分鐘自動刷新。上次更新於 {{ last_updated }}</p>
+        <h1>活躍簡訊號碼 <span>({{ country_name }})</span></h1>
+        <p class="info">
+            頁面每 60 秒自動刷新。上次資料更新於 {{ last_updated }} (每 {{ update_min }} 分鐘更新一次資料)。
+            {% if filtered_count != total_count %}
+            <br>當前顯示 **{{ filtered_count }}** 個號碼 (總活躍數: {{ total_count }})。
+            {% endif %}
+        </p>
+
+        <!-- 關鍵字篩選器 -->
+        <div class="filter-box">
+            <form method="POST" onsubmit="return prepareSubmit()">
+                <h2>關鍵字篩選設定</h2>
+                
+                <label for="must_include">必須包含的關鍵字 (逗號分隔):</label>
+                <input type="text" id="must_include" name="must_include_str" placeholder="例如: google, code, verify">
+                <input type="hidden" id="json_include" name="must_include_json">
+
+                <label for="must_exclude">必須排除的關鍵字 (逗號分隔):</label>
+                <input type="text" id="must_exclude" name="must_exclude_str" placeholder="例如: crypto, loan, promo">
+                <input type="hidden" id="json_exclude" name="must_exclude_json">
+                
+                <label for="filter_mode">篩選模式:</label>
+                <select id="filter_mode" name="filter_mode">
+                    <option value="contains" {% if initial_mode == 'contains' %}selected{% endif %}>包含 (顯示包含任一包含關鍵字的訊息)</option>
+                    <option value="excludes" {% if initial_mode == 'excludes' %}selected{% endif %}>排除 (僅顯示不含任何排除關鍵字的訊息)</option>
+                    <option value="both" {% if initial_mode == 'both' %}selected{% endif %}>包含 + 排除 (需同時滿足兩項)</option>
+                    <option value="none" {% if initial_mode == 'none' %}selected{% endif %}>不篩選 (顯示所有活躍號碼)</option>
+                </select>
+                
+                <button type="submit">應用篩選器</button>
+            </form>
+        </div>
+        
         <div id="results">
             {% if last_updated == "正在初始化..." %}
                 <p class="loading">讀取中。。。請稍後。。。正在努力爬蟲中。</p>
@@ -138,7 +251,7 @@ HTML_TEMPLATE = """
                     {% endfor %}
                 </ul>
             {% else %}
-                <p class="no-results">目前沒有在最近一小時內收到簡訊的號碼。</p>
+                <p class="no-results">目前沒有符合篩選條件的號碼。</p>
             {% endif %}
         </div>
     </div>
@@ -146,23 +259,95 @@ HTML_TEMPLATE = """
 </html>
 """
 
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def home():
     """
-    渲染主頁面，顯示快取中的資料。
+    渲染主頁面，並處理關鍵字篩選器的 POST 請求。
     """
+    global KEYWORD_SETTINGS
+    
+    # 處理 POST 請求 (使用者提交篩選表單)
+    if request.method == 'POST':
+        try:
+            # 讀取 JSON 格式的關鍵字清單
+            include_json = request.form.get('must_include_json')
+            exclude_json = request.form.get('must_exclude_json')
+            
+            new_include = json.loads(include_json) if include_json else []
+            new_exclude = json.loads(exclude_json) if exclude_json else []
+
+            # 更新全域篩選設定
+            KEYWORD_SETTINGS['filter_mode'] = request.form.get('filter_mode', 'none')
+            KEYWORD_SETTINGS['must_include'] = new_include
+            KEYWORD_SETTINGS['must_exclude'] = new_exclude
+            
+            print(f"[篩選] 設定已更新: 模式={KEYWORD_SETTINGS['filter_mode']}, 包含={new_include}, 排除={new_exclude}")
+            
+            # 重新導向回 GET 請求，以避免使用者刷新時重複提交
+            return redirect(url_for('home'))
+            
+        except Exception as e:
+            print(f"[錯誤] 處理 POST 請求時發生錯誤: {e}")
+            # 即使出錯也繼續渲染頁面
+            pass
+
+    # --- GET 請求渲染邏輯 ---
     country_name_map = {'ca': '加拿大', 'us': '美國', 'gb': '英國'}
     country_name = country_name_map.get(COUNTRY_CODE, COUNTRY_CODE.upper())
     last_updated = "正在初始化..."
+    
+    # 1. 準備快取時間
     if cached_data["timestamp"] > 0:
         last_updated = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(cached_data["timestamp"]))
+    
+    raw_numbers = cached_data["raw_numbers"]
+    
+    # 2. 進行篩選
+    if raw_numbers is not None:
+        total_count = len(raw_numbers)
+        
+        mode = KEYWORD_SETTINGS['filter_mode']
+        include_k = KEYWORD_SETTINGS['must_include']
+        exclude_k = KEYWORD_SETTINGS['must_exclude']
+
+        # 根據模式設定包含和排除清單
+        if mode == 'contains':
+            final_include = include_k
+            final_exclude = []
+        elif mode == 'excludes':
+            final_include = []
+            final_exclude = exclude_k
+        elif mode == 'both':
+            final_include = include_k
+            final_exclude = exclude_k
+        else: # 'none' 或其他未知模式
+            final_include = []
+            final_exclude = []
+        
+        # 執行篩選
+        filtered_numbers = apply_keyword_filter(raw_numbers, final_include, final_exclude)
+        filtered_count = len(filtered_numbers)
+    else:
+        # 爬蟲失敗或未初始化
+        filtered_numbers = None
+        total_count = 0
+        filtered_count = 0
 
     return render_template_string(
         HTML_TEMPLATE, 
-        numbers=cached_data["numbers"], 
+        numbers=filtered_numbers, 
         country_name=country_name,
         last_updated=last_updated,
-        update_min=CACHE_DURATION_MINUTES
+        update_min=CACHE_DURATION_MINUTES,
+        
+        # 傳遞給前端顯示的篩選統計
+        total_count=total_count,
+        filtered_count=filtered_count,
+        
+        # 傳遞當前篩選設定給 JavaScript/表單
+        initial_include=KEYWORD_SETTINGS['must_include'],
+        initial_exclude=KEYWORD_SETTINGS['must_exclude'],
+        initial_mode=KEYWORD_SETTINGS['filter_mode'],
     )
 
 # --- 主程式執行區塊 ---
