@@ -37,9 +37,8 @@ We primarily accept Pull Requests (PRs) for new features, bug fixes, and scraper
 
 We currently separate local and Colab startup code, but the core scraping logic is shared.
 
-* **main.py**: 本地執行啟動邏輯 (Local execution startup logic)  
-* **public.py**: Colab 執行啟動邏輯 (Colab execution startup logic)  
-* **scraper\_core.py**: 將 is\_within\_last\_hour, check\_single\_number, find\_active\_numbers 移至此處，以減少 main.py 和 public.py 的程式碼重複。 (Move core functions here to reduce duplication.)  
+* **main.py**: 本地執行啟動邏輯 (Local execution startup logic)   
+* **scraper\_core.py**: 將 is\_within\_last\_hour, check\_single\_number, find\_active\_numbers 移至此處，以減少程式碼重複。 (Move core functions here to reduce duplication.)  
 * **config.toml**: 網站設定和爬蟲參數 (Website configurations and scraper parameters)
 
 ## **✨ 未來功能願景 (Future Feature Vision)**
