@@ -11,7 +11,7 @@ base_urls = ["https://www.freereceivesms.com"]
 # 您可以更改為 'ca', 'gb' 等
 country_code = "us"
 # 爬蟲自動更新的間隔時間 (秒)
-cache_duration_seconds = 300
+cache_duration_seconds = 1800
 # 並發檢查號碼的最大執行緒數
 max_workers = 7
 page_index = 1
@@ -20,11 +20,11 @@ port = 5000
 
 [keywords]
 # 篩選模式: "contains" (包含任一關鍵字) 或 "excludes" (排除任一關鍵字), both, none
-filter_mode = "contains" 
+filter_mode = "" 
 # 簡訊內容必須包含的關鍵字列表 (大小寫不敏感)
-must_include = ["google", "g&a", "code"] 
+must_include = [] 
 # 簡訊內容必須排除的關鍵字列表 (大小寫不敏感)
-must_exclude = ["if"] 
+must_exclude = [] 
 
 [headers]
 User-Agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"

@@ -74,21 +74,22 @@ def apply_keyword_filter(numbers, include_keywords, exclude_keywords):
     exc_lower = [k.lower() for k in exclude_keywords if k]
     
     for item in numbers:
-        is_continue = False
+        is_exc = False
+        is_inc = False
         smss = item.get('smss', [])
         for sms in smss:
-            sms.get_text(strip=True).lower()
+            sms.lower()
             # 排除邏輯: 如果簡訊內容包含任何排除關鍵字，則跳過
             if any(ex_k in sms for ex_k in exc_lower):
-                is_continue=True
+                is_exc=True
                 break
             # 包含邏輯: 如果有包含關鍵字清單，則必須包含任一關鍵字
             if inc_lower:
                 if any(in_k in sms for in_k in inc_lower):
-                    is_continue=True
+                    is_inc = True
                     break
         # 通過篩選
-        if is_continue:
+        if is_exc and not is_inc and include_keywords:
             continue
         else:
             filtered_numbers.append(item)
@@ -112,7 +113,7 @@ def freereceivesms_check_single_number(number_info, user_agent, service):
     driver = None
     result = None
     # 📌 優化：現在將結果包含 sms_content，讓外部篩選器作用
-    for i in range(3):  # 最多嘗試3次
+    for i in range(2):  # 最多嘗試2次
         try:
             print(f"    [THREAD] 檢查號碼: {phone_number_text} ...", end="", flush=True)
 
@@ -137,12 +138,14 @@ def freereceivesms_check_single_number(number_info, user_agent, service):
             
             # 尋找所有訊息列
             message_rows = num_soup.select(message_row_selector)
-            
+            message_rows_contents=[]
             if message_rows:
                 latest_row = message_rows[0]
                 time_element_lg = latest_row.select_one('.d-none.d-lg-block.col-lg-2 span')
                 time_element_sm = latest_row.select_one('.d-block.d-lg-none.ml-2')
-                
+                for item in message_rows:
+                     item_element = item.select_one('.col-lg-8 div')
+                     message_rows_contents.append(item_element.get_text(strip=True) if item_element else "無法讀取簡訊內容。")
                 time_text = ''
                 if time_element_lg:
                     time_text = time_element_lg.get_text(strip=True)
@@ -165,7 +168,7 @@ def freereceivesms_check_single_number(number_info, user_agent, service):
                         'number': phone_number_text,
                         'url': number_url,
                         'last_sms': sms_content,
-                        'smss': message_rows
+                        'smss': message_rows_contents
                     }
                 else:
                     print(f"  -> 不活躍 (最新訊息: {time_text})")
@@ -179,7 +182,7 @@ def freereceivesms_check_single_number(number_info, user_agent, service):
         finally:
             if driver:
                 driver.quit()
-        time.sleep(random.uniform(1, 3))  # 每次嘗試後稍作休息
+        time.sleep(5)  # 每次嘗試後稍作休息
     
     return result
 
@@ -205,7 +208,6 @@ def freereceivesms_find_active_numbers(CHROME_SERVICE, country_code=COUNTRY_CODE
         options.add_argument(f'user-agent={HEADERS["User-Agent"]}')
         
         print("[*] 正在載入國家頁面以取得號碼清單...")
-        # 📌 優化：使用全域的 CHROME_SERVICE
         driver = webdriver.Chrome(service=CHROME_SERVICE, options=options)
         driver.set_page_load_timeout(30)
 

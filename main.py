@@ -2,7 +2,6 @@
 from webdriver_manager.chrome import ChromeDriverManager
 
 import sys
-import os # 用於 config.toml 檢查
 from selenium.webdriver.chrome.service import Service
 from flask import Flask, render_template_string, request, redirect, url_for
 from waitress import serve
@@ -13,6 +12,7 @@ import json # 處理 JSON 格式的關鍵字清單
 import tomli
 from scraper_core import freereceivesms_find_active_numbers, apply_keyword_filter   
 
+from pprint import pprint 
 # --- ngrok 相關匯入 ---
 from pyngrok import ngrok
 
@@ -72,7 +72,7 @@ def update_cache():
     """
     global cached_data
     while True:
-        print("\n--- [背景更新] 開始更新資料 ---")
+        print("\n--- [背景更新] 開始更新資料 ---\n")
         if BASE_URL == "https://www.freereceivesms.com":
             # 這裡呼叫的爬蟲函數應返回未篩選的原始數據
             raw_numbers = freereceivesms_find_active_numbers(CHROME_SERVICE)
@@ -87,7 +87,12 @@ def update_cache():
             )
             print(f"--- [背景更新] 資料更新完畢，原始活躍號碼 {len(raw_numbers) if raw_numbers is not None else 0} 個，初始篩選後 {len(initial_filtered)} 個。")
             print(f"--- [背景更新] 將在 {CACHE_DURATION_SECONDS} 秒後再次更新 ---\n")
-            time.sleep(CACHE_DURATION_SECONDS)
+
+            print("="*80)
+            pprint(raw_numbers)
+            print("="*80)
+        
+        time.sleep(CACHE_DURATION_SECONDS)
 
 # --- 網頁應用程式 (Flask) ---
 app = Flask(__name__)
