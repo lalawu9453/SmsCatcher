@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from webdriver_manager.chrome import ChromeDriverManager
 
-
+import sys
 from selenium.webdriver.chrome.service import Service
 from flask import Flask, render_template_string
 from waitress import serve
@@ -23,6 +23,16 @@ with open("config.toml", "rb") as f:
 
 # --- 全域設定 ---
 NGROK_AUTH_TOKEN = config.get('ngrok_auth_token', '')
+
+# --- ❗️重要設定：處理 Colab 命令行參數 ❗️ ---
+try:
+    # 查找 --ngrok_token 參數後面的值
+    token_index = sys.argv.index('--ngrok_token') + 1
+    NGROK_AUTH_TOKEN = sys.argv[token_index]
+    print("[配置] 成功從命令行參數讀取 ngrok Token。")
+except (ValueError, IndexError):
+    if not NGROK_AUTH_TOKEN: # 如果 config.toml 中也沒有，則提示
+        print("[配置] 警告：無法從命令行或 config.toml 讀取 ngrok Token。ngrok 將無法啟動。")
 
 # 讀取區塊內的設定
 general_config = config['general']
@@ -106,6 +116,7 @@ HTML_TEMPLATE = """
         }
         .error, .no-results { font-size: 1.1em; color: #777; font-style: italic; padding: 20px; }
         .error { color: #d9534f; font-weight: bold; }
+        .loading { color: #428bca; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -113,8 +124,10 @@ HTML_TEMPLATE = """
         <h1>最近一小時內活躍的簡訊號碼 <span>({{ country_name }})</span></h1>
         <p class="info">頁面每 {{ update_min }} 分鐘自動刷新。上次更新於 {{ last_updated }}</p>
         <div id="results">
-            {% if numbers is none %}
-                <p class="error">讀取網站時發生錯誤，請稍後再試。爬蟲可能已被封鎖或初始化失敗。</p>
+            {% if last_updated == "正在初始化..." %}
+                <p class="loading">讀取中。。。請稍後。。。正在努力爬蟲中。</p>
+            {% elif numbers is none  %}
+                <p class="error">讀取中。。。讀取網站時發生錯誤，請稍後再試。爬蟲可能已被封鎖或初始化失敗。</p>
             {% elif numbers %}
                 <ul>
                     {% for item in numbers %}

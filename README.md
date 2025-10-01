@@ -21,7 +21,7 @@
 它提供兩種執行模式：
 
 1. **本地執行 (main.py)**: 適合在本機電腦上運行，可選是否使用 ngrok 建立公開網址。  
-2. **Colab 執行 (public.py)**: 專為 Google Colaboratory 設計，方便在雲端環境中運行並透過 ngrok 快速建立公開網址。
+2. **Colab 執行 (main.py --ngrok_token $ng_token)**: 專為 Google Colaboratory 設計，方便在雲端環境中運行並透過 ngrok 快速建立公開網址。
 
 ## **🚀 專案設置 (Setup)**
 
@@ -73,18 +73,49 @@
 
 [快速簡單執行Colab](/Temporary_SMS_Receiver_Monitor.ipynb)
 
-使用 public.py 專門在雲端環境中執行，它包含從命令行讀取 ngrok Token 的邏輯。
-
+使用 `!uv run python main.py --ngrok_token $ng_token` 專門在雲端環境中執行，它包含從命令行讀取 ngrok Token 的邏輯。
+#### 全部執行
 **Colab 步驟:**
 
 1. 將您的 ngrok Authtoken 儲存到 Colab 的 Secrets Manager (密鑰管理器) 中，命名為 NGROK\_AUTH\_TOKEN。  
 2. 在 Colab 筆記本中，Run all：
 ![](https://i.meee.com.tw/zlunIT2.png)
 
+---
+
+#### 自行執行
+```
+# 最安全方法還是在Secrets Manager 中，配置您的 ngrok NGROK_AUTH_TOKEN
+NGROK_AUTH_TOKEN = "" # @param {"type":"string","placeholder":"NGROK_AUTH_TOKEN"}
+
+!git clone https://github.com/LayorX/Temporary-SMS-Receiver-Monitor.git
+%cd Temporary-SMS-Receiver-Monitor
+# 更新套件列表 / Update package list
+!apt-get update
+
+# 下載 Google Chrome 穩定版安裝檔 / Download the stable version of the Google Chrome installer
+!wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+
+# 安裝 .deb 檔案，並修復相依性問題 / Install the .deb file and fix dependency issues
+!apt install --fix-broken -y ./google-chrome-stable_current_amd64.deb
+
+from google.colab import userdata
+from google.colab.userdata import NotebookAccessError,SecretNotFoundError
+
+try:
+  print("【NGROK_AUTH_TOKEN】: Secrets Manager")
+  ng_token = userdata.get("NGROK_AUTH_TOKEN")
+except (NotebookAccessError, SecretNotFoundError):
+  print("【NGROK_AUTH_TOKEN】: Google Colab Code Block")
+  ng_token = NGROK_AUTH_TOKEN
+
+!uv sync
+!uv run python main.py --ngrok_token $ng_token
+```
 
 ## **💡 優化分析總結 (Optimization Summary)**
 
-| 項目 | 原始程式碼 (main.py/public.py) | 優化後的程式碼 (已修訂) | 效益 |
+| 項目 | 原始程式碼 (main.py) | 優化後的程式碼 (已修訂) | 效益 |
 | :---- | :---- | :---- | :---- |
 | **結構重複** | 兩個檔案高度重複。 | 結構分離但核心邏輯相同（保留分離以適應不同啟動方式）。 | **清晰度維持**，未來可進一步重構。 |
 | **爬蟲效能** | 在每個執行緒中重複呼叫 ChromeDriverManager().install()。 | **將 ChromeDriverManager().install() 移至主程式啟動區塊，僅執行一次。** | **極大提升啟動速度和爬蟲效率**，避免數十次重複的驅動程式檢查和設定。 |
