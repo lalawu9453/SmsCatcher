@@ -12,7 +12,6 @@ import json # 處理 JSON 格式的關鍵字清單
 import tomli
 from scraper_core import freereceivesms_find_active_numbers, apply_keyword_filter   
 
-from pprint import pprint 
 # --- ngrok 相關匯入 ---
 from pyngrok import ngrok
 
@@ -87,10 +86,7 @@ def update_cache():
             )
             print(f"--- [背景更新] 資料更新完畢，原始活躍號碼 {len(raw_numbers) if raw_numbers is not None else 0} 個，初始篩選後 {len(initial_filtered)} 個。")
             print(f"--- [背景更新] 將在 {CACHE_DURATION_SECONDS} 秒後再次更新 ---\n")
-
-            print("="*80)
-            pprint(raw_numbers)
-            print("="*80)
+            print("*"*80)
         
         time.sleep(CACHE_DURATION_SECONDS)
 
@@ -222,11 +218,11 @@ HTML_TEMPLATE = """
                 <h2>關鍵字篩選設定</h2>
                 
                 <label for="must_include">必須包含的關鍵字 (逗號分隔):</label>
-                <input type="text" id="must_include" name="must_include_str" placeholder="例如: google, code, verify">
+                <input type="text" id="must_include" name="must_include_str" placeholder="例如: google, code, verify, OTP">
                 <input type="hidden" id="json_include" name="must_include_json">
 
                 <label for="must_exclude">必須排除的關鍵字 (逗號分隔):</label>
-                <input type="text" id="must_exclude" name="must_exclude_str" placeholder="例如: crypto, loan, promo">
+                <input type="text" id="must_exclude" name="must_exclude_str" placeholder="例如: crypto, loan, promo, free">
                 <input type="hidden" id="json_exclude" name="must_exclude_json">
                 
                 <label for="filter_mode">篩選模式:</label>

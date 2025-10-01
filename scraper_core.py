@@ -55,45 +55,40 @@ def is_within_last_hour(time_text):
 def apply_keyword_filter(numbers, include_keywords, exclude_keywords):
     """
     根據關鍵字清單篩選爬蟲結果。
-    
+
     Args:
-        numbers (list): 爬蟲結果清單 [{ 'number': ..., 'url': ..., 'last_sms': ... }]
+        numbers (list): 爬蟲結果清單 [{ 'number': ..., 'url': ..., 'last_sms': ..., 'smss': [...] }]
         include_keywords (list): 必須包含的關鍵字 (大小寫不敏感)
         exclude_keywords (list): 必須排除的關鍵字 (大小寫不敏感)
 
     Returns:
         list: 篩選後的結果清單。
     """
+    # 如果沒有任何篩選條件，直接返回原始列表
     if not include_keywords and not exclude_keywords:
         return numbers
-    
+
     filtered_numbers = []
     
     # 將關鍵字全部轉為小寫，以便進行不敏感的比對
     inc_lower = [k.lower() for k in include_keywords if k]
     exc_lower = [k.lower() for k in exclude_keywords if k]
-    
+
     for item in numbers:
-        is_exc = False
-        is_inc = False
-        smss = item.get('smss', [])
-        for sms in smss:
-            sms.lower()
-            # 排除邏輯: 如果簡訊內容包含任何排除關鍵字，則跳過
-            if any(ex_k in sms for ex_k in exc_lower):
-                is_exc=True
-                break
-            # 包含邏輯: 如果有包含關鍵字清單，則必須包含任一關鍵字
-            if inc_lower:
-                if any(in_k in sms for in_k in inc_lower):
-                    is_inc = True
-                    break
-        # 通過篩選
-        if is_exc and not is_inc and include_keywords:
+        # 將該號碼的所有簡訊內容合併為一個小寫字串，方便搜尋
+        all_sms_content = " ".join(item.get('smss', [])).lower()
+
+        # 1. 排除邏輯：如果內容包含任何排除關鍵字，則跳過此號碼
+        if exc_lower and any(ex_k in all_sms_content for ex_k in exc_lower):
             continue
-        else:
-            filtered_numbers.append(item)
-        
+
+        # 2. 包含邏輯：如果設定了必須包含的關鍵字，但內容中一個都沒找到，則跳過
+        if inc_lower and not any(in_k in all_sms_content for in_k in inc_lower):
+            continue
+            
+        # 如果程式能執行到這裡，代表該號碼通過所有篩選條件
+        filtered_numbers.append(item)
+            
     return filtered_numbers
 
 
