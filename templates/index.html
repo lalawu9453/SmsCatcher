@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="60">
+    <title>活躍簡訊號碼與關鍵字篩選</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>活躍簡訊號碼 <span>({{ country_name }})</span></h1>
+        <p class="info">
+            頁面每 60 秒自動刷新。上次資料更新於 {{ last_updated }} (每 {{ update_min }} 分鐘更新一次資料)。
+            {% if filtered_count != total_count %}
+            <br>當前顯示 **{{ filtered_count }}** 個號碼 (總活躍數: {{ total_count }})。
+            {% endif %}
+        </p>
+
+        <!-- 關鍵字篩選器 -->
+        <div class="filter-box">
+            <form method="POST" onsubmit="return prepareSubmit()">
+                <h2>關鍵字篩選設定</h2>
+                
+                <label for="must_include">必須包含的關鍵字 (逗號分隔):</label>
+                <input type="text" id="must_include" name="must_include_str" placeholder="例如: google, code, verify">
+                <input type="hidden" id="json_include" name="must_include_json">
+
+                <label for="must_exclude">必須排除的關鍵字 (逗號分隔):</label>
+                <input type="text" id="must_exclude" name="must_exclude_str" placeholder="例如: crypto, loan, promo">
+                <input type="hidden" id="json_exclude" name="must_exclude_json">
+                
+                <label for="filter_mode">篩選模式:</label>
+                <select id="filter_mode" name="filter_mode">
+                    <option value="contains" {% if initial_mode == 'contains' %}selected{% endif %}>包含 (顯示包含任一包含關鍵字的訊息)</option>
+                    <option value="excludes" {% if initial_mode == 'excludes' %}selected{% endif %}>排除 (僅顯示不含任何排除關鍵字的訊息)</option>
+                    <option value="both" {% if initial_mode == 'both' %}selected{% endif %}>包含 + 排除 (需同時滿足兩項)</option>
+                    <option value="none" {% if initial_mode == 'none' %}selected{% endif %}>不篩選 (顯示所有活躍號碼)</option>
+                </select>
+                
+                <button type="submit">應用篩選器</button>
+            </form>
+        </div>
+        
+        <div id="results">
+            {% if last_updated == "正在初始化..." %}
+                <p class="loading">讀取中。。。請稍後。。。正在努力爬蟲中。</p>
+            {% elif numbers is none  %}
+                <p class="error">讀取中。。。讀取網站時發生錯誤，請稍後再試。爬蟲可能已被封鎖或初始化失敗。</p>
+            {% elif numbers %}
+                <ul>
+                    {% for item in numbers %}
+                        <li>
+                            <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">{{ item.number }}</a>
+                            <p class="sms-content">{{ item.last_sms }}</p>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="no-results">目前沒有符合篩選條件的號碼。</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        // 將 Python 變數傳遞給 JavaScript
+        const initialInclude = {{ initial_include | tojson }};
+        const initialExclude = {{ initial_exclude | tojson }};
+        const initialMode = {{ initial_mode | tojson }};
+    </script>
+    <script src="{{ url_for('static', filename='script.js') }}" defer></script>
+</body>
+</html>

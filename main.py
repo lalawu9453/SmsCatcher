@@ -3,7 +3,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 import sys
 from selenium.webdriver.chrome.service import Service
-from flask import Flask, render_template_string, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for
 from waitress import serve
 import threading
 import time
@@ -91,174 +91,7 @@ def update_cache():
         time.sleep(CACHE_DURATION_SECONDS)
 
 # --- 網頁應用程式 (Flask) ---
-app = Flask(__name__)
-
-HTML_TEMPLATE = """
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="refresh" content="60">
-    <title>活躍簡訊號碼與關鍵字篩選</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f4f7f9; color: #333; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: flex-start; min-height: 10vh; }
-        .container { background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); width: 100%; max-width: 800px; text-align: center; }
-        h1 { color: #0056b3; margin-bottom: 10px; }
-        h1 span { font-size: 1.2rem; color: #555; vertical-align: middle; }
-        p.info { font-size: 0.9em; color: #777; margin-top: 0; margin-bottom: 20px; }
-        
-        /* 篩選器樣式 */
-        .filter-box { background-color: #e6f7ff; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: left; border: 1px solid #b3e0ff; }
-        .filter-box label { font-weight: bold; color: #0056b3; display: block; margin-bottom: 5px; margin-top: 10px; }
-        .filter-box input[type="text"], .filter-box select { 
-            width: 100%; 
-            padding: 8px; 
-            margin-bottom: 10px; 
-            border: 1px solid #ccc; 
-            border-radius: 4px; 
-            box-sizing: border-box; 
-        }
-        .filter-box button { 
-            background-color: #007bff; 
-            color: white; 
-            padding: 10px 15px; 
-            border: none; 
-            border-radius: 5px; 
-            cursor: pointer; 
-            font-weight: bold;
-            transition: background-color 0.2s;
-        }
-        .filter-box button:hover { background-color: #0056b3; }
-        
-        ul { list-style-type: none; padding: 0; }
-        li { 
-            background-color: #e9f5ff; 
-            margin: 15px 0; 
-            padding: 15px; 
-            border-radius: 8px; 
-            border-left: 5px solid #007bff; 
-            text-align: left;
-            transition: transform 0.2s, box-shadow 0.2s; 
-        }
-        li:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1); }
-        a { 
-            text-decoration: none; 
-            color: #007bff; 
-            font-weight: bold; 
-            font-size: 1.2em; 
-            transition: color 0.2s;
-            display: block;
-            margin-bottom: 8px;
-        }
-        a:hover { color: #0056b3; }
-        .sms-content {
-            font-size: 0.95em;
-            color: #343a40;
-            margin: 0;
-            padding: 10px;
-            background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 5px;
-            word-wrap: break-word;
-        }
-        .error, .no-results { font-size: 1.1em; color: #777; font-style: italic; padding: 20px; }
-        .error { color: #d9534f; font-weight: bold; }
-        .loading { color: #428bca; font-weight: bold; }
-    </style>
-    <script>
-        // 將 Python 變數傳遞給 JavaScript
-        const initialInclude = {{ initial_include | tojson }};
-        const initialExclude = {{ initial_exclude | tojson }};
-        const initialMode = {{ initial_mode | tojson }};
-
-        // 格式化關鍵字清單為逗號分隔的字串
-        function formatKeywords(keywords) {
-            return Array.isArray(keywords) ? keywords.join(', ') : '';
-        }
-
-        // 頁面載入時設定初始值
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('must_include').value = formatKeywords(initialInclude);
-            document.getElementById('must_exclude').value = formatKeywords(initialExclude);
-            document.getElementById('filter_mode').value = initialMode;
-        });
-        
-        // 提交表單時將逗號分隔字串轉換為 JSON 陣列
-        function prepareSubmit() {
-            const includeInput = document.getElementById('must_include').value;
-            const excludeInput = document.getElementById('must_exclude').value;
-            
-            // 將逗號分隔的字串轉換為陣列
-            const includeArray = includeInput.split(',').map(s => s.trim()).filter(s => s.length > 0);
-            const excludeArray = excludeInput.split(',').map(s => s.trim()).filter(s => s.length > 0);
-            
-            // 將陣列存入隱藏欄位 (JSON 格式)
-            document.getElementById('json_include').value = JSON.stringify(includeArray);
-            document.getElementById('json_exclude').value = JSON.stringify(excludeArray);
-            
-            return true; // 允許表單提交
-        }
-
-    </script>
-</head>
-<body>
-    <div class="container">
-        <h1>活躍簡訊號碼 <span>({{ country_name }})</span></h1>
-        <p class="info">
-            頁面每 60 秒自動刷新。上次資料更新於 {{ last_updated }} (每 {{ update_min }} 分鐘更新一次資料)。
-            {% if filtered_count != total_count %}
-            <br>當前顯示 **{{ filtered_count }}** 個號碼 (總活躍數: {{ total_count }})。
-            {% endif %}
-        </p>
-
-        <!-- 關鍵字篩選器 -->
-        <div class="filter-box">
-            <form method="POST" onsubmit="return prepareSubmit()">
-                <h2>關鍵字篩選設定</h2>
-                
-                <label for="must_include">必須包含的關鍵字 (逗號分隔):</label>
-                <input type="text" id="must_include" name="must_include_str" placeholder="例如: google, code, verify, OTP">
-                <input type="hidden" id="json_include" name="must_include_json">
-
-                <label for="must_exclude">必須排除的關鍵字 (逗號分隔):</label>
-                <input type="text" id="must_exclude" name="must_exclude_str" placeholder="例如: crypto, loan, promo, free">
-                <input type="hidden" id="json_exclude" name="must_exclude_json">
-                
-                <label for="filter_mode">篩選模式:</label>
-                <select id="filter_mode" name="filter_mode">
-                    <option value="contains" {% if initial_mode == 'contains' %}selected{% endif %}>包含 (顯示包含任一包含關鍵字的訊息)</option>
-                    <option value="excludes" {% if initial_mode == 'excludes' %}selected{% endif %}>排除 (僅顯示不含任何排除關鍵字的訊息)</option>
-                    <option value="both" {% if initial_mode == 'both' %}selected{% endif %}>包含 + 排除 (需同時滿足兩項)</option>
-                    <option value="none" {% if initial_mode == 'none' %}selected{% endif %}>不篩選 (顯示所有活躍號碼)</option>
-                </select>
-                
-                <button type="submit">應用篩選器</button>
-            </form>
-        </div>
-        
-        <div id="results">
-            {% if last_updated == "正在初始化..." %}
-                <p class="loading">讀取中。。。請稍後。。。正在努力爬蟲中。</p>
-            {% elif numbers is none  %}
-                <p class="error">讀取中。。。讀取網站時發生錯誤，請稍後再試。爬蟲可能已被封鎖或初始化失敗。</p>
-            {% elif numbers %}
-                <ul>
-                    {% for item in numbers %}
-                        <li>
-                            <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">{{ item.number }}</a>
-                            <p class="sms-content">{{ item.last_sms }}</p>
-                        </li>
-                    {% endfor %}
-                </ul>
-            {% else %}
-                <p class="no-results">目前沒有符合篩選條件的號碼。</p>
-            {% endif %}
-        </div>
-    </div>
-</body>
-</html>
-"""
+app = Flask(__name__, template_folder='templates', static_folder='static')
 
 @app.route('/', methods=['GET', 'POST'])
 def home():
@@ -334,8 +167,8 @@ def home():
         total_count = 0
         filtered_count = 0
 
-    return render_template_string(
-        HTML_TEMPLATE, 
+    return render_template(
+        'index.html', 
         numbers=filtered_numbers, 
         country_name=country_name,
         last_updated=last_updated,
