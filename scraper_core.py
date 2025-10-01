@@ -74,19 +74,24 @@ def apply_keyword_filter(numbers, include_keywords, exclude_keywords):
     exc_lower = [k.lower() for k in exclude_keywords if k]
     
     for item in numbers:
-        sms = item.get('last_sms', '').lower()
-        
-        # 排除邏輯: 如果簡訊內容包含任何排除關鍵字，則跳過
-        if any(ex_k in sms for ex_k in exc_lower):
-            continue
-            
-        # 包含邏輯: 如果有包含關鍵字清單，則必須包含任一關鍵字
-        if inc_lower:
-            if not any(in_k in sms for in_k in inc_lower):
-                continue
-                
+        is_continue = False
+        smss = item.get('smss', [])
+        for sms in smss:
+            sms.get_text(strip=True).lower()
+            # 排除邏輯: 如果簡訊內容包含任何排除關鍵字，則跳過
+            if any(ex_k in sms for ex_k in exc_lower):
+                is_continue=True
+                break
+            # 包含邏輯: 如果有包含關鍵字清單，則必須包含任一關鍵字
+            if inc_lower:
+                if any(in_k in sms for in_k in inc_lower):
+                    is_continue=True
+                    break
         # 通過篩選
-        filtered_numbers.append(item)
+        if is_continue:
+            continue
+        else:
+            filtered_numbers.append(item)
         
     return filtered_numbers
 
