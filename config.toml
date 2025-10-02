@@ -8,6 +8,8 @@ ngrok_auth_token = ""
 [general]
 # 網站列表，為未來擴充不同網站的爬蟲做準備 (目前只使用第一個網址)
 base_urls = ["https://www.freereceivesms.com"]
+# base_urls = ["https://www.freereceivesms.com", "https://receive-smss.com/"]
+# base_urls = ["https://receive-smss.com/"]
 # 您可以更改為 'ca', 'gb' 等
 country_code = "us"
 # 爬蟲自動更新的間隔時間 (秒)
@@ -16,7 +18,7 @@ cache_duration_seconds = 1800
 max_workers = 7
 page_index = 1
 # Flask 服務埠號
-port = 5000
+port = 5001
 
 [keywords]
 # 篩選模式: "contains" (包含任一關鍵字) 或 "excludes" (排除任一關鍵字), both, none
