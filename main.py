@@ -186,7 +186,6 @@ def home():
 
 # --- 主程式執行區塊 ---
 if __name__ == '__main__':
-    # 📌 優化：僅在啟動時安裝一次 WebDriver
     print("[*] 正在檢查並安裝 ChromeDriver...")
     CHROME_SERVICE = Service(ChromeDriverManager().install())
     print("[*] ChromeDriver 服務已就緒。")

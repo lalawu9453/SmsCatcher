@@ -31,6 +31,37 @@ We primarily accept Pull Requests (PRs) for new features, bug fixes, and scraper
 * 確保您的程式碼遵循 PEP 8 規範，並在提交前運行測試 (如果適用)。 (Ensure your code follows PEP 8 and run tests before committing.)  
 * 提交 PR 時，請清楚說明您做了哪些變更以及解決了什麼問題。 (Clearly describe your changes and what issue they resolve in your PR.)
 
+### **4\. 執行測試 (Running Tests)**
+
+本專案包含一套自動化測試，以確保程式碼品質和功能穩定。在您提交變更前，請務必在本地端運行測試。
+
+This project includes an automated test suite to ensure code quality and stability. Before submitting your changes, please make sure to run the tests locally.
+
+1.  **安裝測試依賴 (Install Testing Dependencies)**
+
+    測試工具並未包含在主要的 `uv sync` 中。請使用以下指令單獨安裝它們：
+    
+    The testing tools are not included in the main `uv sync`. Please install them separately using the following command:
+
+    ```bash
+    uv pip install pytest pytest-mock
+    ```
+
+2.  **運行測試套件 (Run the Test Suite)**
+
+    使用 `pytest` 模組來執行所有測試。在 Windows 環境下，為了避免路徑問題並確保使用虛擬環境中的正確 Python 版本，建議使用以下完整指令：
+
+    Use the `pytest` module to run all tests. On Windows, it is recommended to use the full command below to avoid path issues and ensure the correct Python version from the virtual environment is used:
+
+    ```bash
+    # 在專案根目錄下執行 (Run from the project root directory)
+    .venv\Scripts\python.exe -m pytest -v
+    ```
+
+    如果您看到 `18 passed` (或更多) 且沒有 `failed` 或 `errors` 的訊息，代表所有測試都已成功通過。
+
+    If you see `18 passed` (or more) with no `failed` or `errors`, it means all tests have passed successfully.
+
 ## **💻 專案結構建議 (Suggested Project Structure)**
 
 我們目前將本地和 Colab 啟動程式碼分開，但核心爬蟲邏輯是共享的。
