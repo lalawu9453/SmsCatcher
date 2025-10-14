@@ -181,12 +181,11 @@ if __name__ == '__main__':
         '--web', 
         type=str, 
         default='all', 
-        choices=['1', '2', '3', 'all'],
+        choices=['1', '2', 'all'],
         help=(
             "指定要爬取的網站:\n"
             "  1: 只爬取 freereceivesms.com\n"
             "  2: 爬取 freereceivesms.com 和 temp-number.com\n"
-            "  3: 爬取 receive-smss.com 和 temp-number.com\n"
             "  all: 爬取設定檔中所有的網站 (預設)"
         )
     )
@@ -205,7 +204,6 @@ if __name__ == '__main__':
     url_map = {
         '1': [BASE_URLS[0]],
         '2': [BASE_URLS[0], BASE_URLS[2]], # freereceivesms, temp-number
-        '3': [BASE_URLS[1], BASE_URLS[2]], # receive-smss, temp-number
         'all': BASE_URLS
     }
     target_urls = url_map.get(args.web, BASE_URLS)
