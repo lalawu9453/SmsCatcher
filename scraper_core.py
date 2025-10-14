@@ -84,7 +84,7 @@ def is_within_last_hour(time_text):
     檢查時間文字 (例如 '5分钟前', '2小时前') 是否在最近一小時內。
     """
     time_text = time_text.strip()
-    if any(s in time_text for s in ['分钟前', '分鐘前', 'minutes ago']):
+    if any(s in time_text for s in ['分钟前', '分鐘前', 'minutes ago','秒前','seconds ago']):
         try:
             minutes = int(re.findall(r'\d+', time_text)[0])
             if minutes <= 60:
@@ -156,7 +156,7 @@ def freereceivesms_check_single_number(number_info, user_agent, service, base_ur
                     if len(sms_content) > 80 and (sms_content.endswith('==') or sms_content.endswith('=')):
                         sms_content = lang_dict['SMS_CONTENT_ENCRYPTED'] + sms_content
                     print(lang_dict['FOUND_ACTIVE_NUMBER'].format(time=time_text))
-                    result = {'number': phone_number_text, 'url': number_url, 'last_sms': sms_content, 'smss': message_rows_contents}
+                    result = {'number': phone_number_text, 'url': number_url, 'last_sms': sms_content, 'smss': message_rows_contents, 'last_time':time_text}
                 else:
                     print(lang_dict['INACTIVE_NUMBER'].format(time=time_text))
             else:
@@ -257,7 +257,7 @@ def receivesmss_check_single_number(number_info, user_agent, service, base_url, 
             all_smss = [row.select_one('div.col-md-8').get_text(strip=True) for row in message_rows if row.select_one('div.col-md-8')]
 
             print(lang_dict['FOUND_ACTIVE_NUMBER'].format(time=time_text))
-            result = {'number': phone_number_text, 'url': number_url, 'last_sms': sms_content, 'smss': all_smss}
+            result = {'number': phone_number_text, 'url': number_url, 'last_sms': sms_content, 'smss': all_smss, 'last_time':time_text}
         else:
             print(lang_dict['INACTIVE_NUMBER'].format(time=time_text))
     except WebDriverException as e:
@@ -375,7 +375,7 @@ def tempnumber_check_single_number(number_info, user_agent, service, base_url, l
             all_smss = [row.select_one('div.direct-chat-text').get_text(strip=True) for row in message_rows if row.select_one('div.direct-chat-text')]
 
             print(lang_dict['FOUND_ACTIVE_NUMBER'].format(time=time_text))
-            result = {'number': phone_number_text, 'url': number_url, 'last_sms': sms_content, 'smss': all_smss}
+            result = {'number': phone_number_text, 'url': number_url, 'last_sms': sms_content, 'smss': all_smss, 'last_time':time_text}
         else:
             print(lang_dict['INACTIVE_NUMBER'].format(time=time_text))
             
@@ -489,7 +489,7 @@ def scrape_all_sites(CHROME_SERVICE, target_urls, lang_dict):
                 numbers = receivesmss_find_active_numbers(CHROME_SERVICE, base_url=url, user_agent=user_agent, lang_dict=lang_dict)
                 if numbers:
                     for number in numbers:
-                        number['source'] = 'Receive-Sms'
+                        number['source'] = 'Receive-Smss'
                     all_results.extend(numbers)
             except Exception as e:
                 print(lang_dict['PROCESS_SITE_ERROR'].format(url=url, e=e))

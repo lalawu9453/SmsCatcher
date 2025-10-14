@@ -168,26 +168,26 @@ def test_ui():
         {
             'source': 'freereceivesms',
             'number': '+11234567890',
-            'time': '5 minutes ago',
-            'last_sms': 'Your verification code for [freereceivesms] is 12345. This is a test message.'
+            'last_time': '5 minutes ago',
+            'last_sms': 'Your verification code for NETFLIX is 12345. This is a test message.'
         },
         {
-            'source': 'receive-sms',
-            'number': '+449876543210',
-            'time': '10 minutes ago',
-            'last_sms': 'Hello from [receive-smss]! Your package will be delivered tomorrow.'
+            'source': 'receive-smss',
+            'number': '+149876543210',
+            'last_time': '10 minutes ago',
+            'last_sms': '[网易云音乐]verification code: 3539, valid for 10 minutes.'
         },
         {
             'source': 'temp-number',
-            'number': '+15555555555',
-            'time': '1 hour ago',
-            'last_sms': '[temp-number] security alert: A new device has been logged into your account.'
+            'number': '+17785222568',
+            'last_time': '1 hour ago',
+            'last_sms': 'g-597123 is your google verification code.'
         },
         {
             'source': 'freereceivesms',
-            'number': '+11234567890',
-            'time': '2 hours ago',
-            'last_sms': 'Another test message from [freereceivesms].'
+            'number': '+16046146777',
+            'last_time': '27 seconds ago',
+            'last_sms': '832138 adalah kode verifikasi anda daewvlzq+ns'
         }
     ]
     
