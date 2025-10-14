@@ -92,6 +92,7 @@ from scraper_core import tempnumber_find_active_numbers
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 import tomli
+from lang import get_lang # 匯入語言模組
 
 def test_tempnumber_scraper_smoke_test():
     """
@@ -105,12 +106,14 @@ def test_tempnumber_scraper_smoke_test():
             config = tomli.load(f)
         user_agent = config.get('headers', {}).get('User-Agent', 'Mozilla/5.0')
         base_url = "https://temp-number.com/"
+        lang_dict = get_lang('en') # 初始化語言字典
         
         print("[*]   - 初始化 ChromeDriver...")
         service = Service(ChromeDriverManager().install())
         
         print("[*]   - 執行 tempnumber_find_active_numbers...")
-        result = tempnumber_find_active_numbers(service, base_url, user_agent)
+        # 傳遞 lang_dict 參數
+        result = tempnumber_find_active_numbers(service, base_url, user_agent, lang_dict)
         
         # 斷言：結果必須是一個列表 (即使是空列表)
         assert isinstance(result, list)

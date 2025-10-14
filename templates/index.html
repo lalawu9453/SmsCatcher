@@ -1,52 +1,52 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="{{ lang_dict.language_code }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="refresh" content="60">
-    <title>活躍簡訊號碼與關鍵字篩選</title>
+    <title>{{ lang.WEB_TITLE }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <div class="container">
-        <h1>活躍簡訊號碼 <span>({{ country_name }})</span></h1>
+        <h1>{{ lang.WEB_H1 }} <span>({{ country_name }})</span></h1>
         <p class="info">
-            頁面每 60 秒自動刷新。上次資料更新於 {{ last_updated }} (每 {{ update_min }} 分鐘更新一次資料)。
+            {{ lang.WEB_INFO_REFRESH.format(last_updated=last_updated, minutes=update_min) | safe }}
             {% if filtered_count != total_count %}
-            <br>當前顯示 **{{ filtered_count }}** 個號碼 (總活躍數: {{ total_count }})。
+            {{ lang.WEB_INFO_DISPLAYING.format(filtered_count=filtered_count, total_count=total_count) | safe }}
             {% endif %}
         </p>
 
         <!-- 關鍵字篩選器 -->
         <div class="filter-box">
             <form method="POST" onsubmit="return prepareSubmit()">
-                <h2>關鍵字篩選設定</h2>
+                <h2>{{ lang.WEB_FILTER_TITLE }}</h2>
                 
-                <label for="must_include">必須包含的關鍵字 (逗號分隔):</label>
-                <input type="text" id="must_include" name="must_include_str" placeholder="例如: google, code, verify">
+                <label for="must_include">{{ lang.WEB_INCLUDE_LABEL }}</label>
+                <input type="text" id="must_include" name="must_include_str" placeholder="{{ lang.WEB_INCLUDE_PLACEHOLDER }}">
                 <input type="hidden" id="json_include" name="must_include_json">
 
-                <label for="must_exclude">必須排除的關鍵字 (逗號分隔):</label>
-                <input type="text" id="must_exclude" name="must_exclude_str" placeholder="例如: crypto, loan, promo">
+                <label for="must_exclude">{{ lang.WEB_EXCLUDE_LABEL }}</label>
+                <input type="text" id="must_exclude" name="must_exclude_str" placeholder="{{ lang.WEB_EXCLUDE_PLACEHOLDER }}">
                 <input type="hidden" id="json_exclude" name="must_exclude_json">
                 
-                <label for="filter_mode">篩選模式:</label>
+                <label for="filter_mode">{{ lang.WEB_MODE_LABEL }}</label>
                 <select id="filter_mode" name="filter_mode">
-                    <option value="contains" {% if initial_mode == 'contains' %}selected{% endif %}>包含 (顯示包含任一包含關鍵字的訊息)</option>
-                    <option value="excludes" {% if initial_mode == 'excludes' %}selected{% endif %}>排除 (僅顯示不含任何排除關鍵字的訊息)</option>
-                    <option value="both" {% if initial_mode == 'both' %}selected{% endif %}>包含 + 排除 (需同時滿足兩項)</option>
-                    <option value="none" {% if initial_mode == 'none' %}selected{% endif %}>不篩選 (顯示所有活躍號碼)</option>
+                    <option value="contains" {% if initial_mode == 'contains' %}selected{% endif %}>{{ lang.WEB_MODE_CONTAINS }}</option>
+                    <option value="excludes" {% if initial_mode == 'excludes' %}selected{% endif %}>{{ lang.WEB_MODE_EXCLUDES }}</option>
+                    <option value="both" {% if initial_mode == 'both' %}selected{% endif %}>{{ lang.WEB_MODE_BOTH }}</option>
+                    <option value="none" {% if initial_mode == 'none' %}selected{% endif %}>{{ lang.WEB_MODE_NONE }}</option>
                 </select>
                 
-                <button type="submit">應用篩選器</button>
+                <button type="submit">{{ lang.WEB_APPLY_FILTER_BUTTON }}</button>
             </form>
         </div>
         
         <div id="results">
-            {% if last_updated == "正在初始化..." %}
-                <p class="loading">讀取中。。。請稍後。。。正在努力爬蟲中。</p>
+            {% if last_updated == lang.INITIALIZING %}
+                <p class="loading">{{ lang.WEB_LOADING }}</p>
             {% elif numbers is none  %}
-                <p class="error">讀取中。。。讀取網站時發生錯誤，請稍後再試。爬蟲可能已被封鎖或初始化失敗。</p>
+                <p class="error">{{ lang.WEB_ERROR }}</p>
             {% elif numbers %}
                 <ul>
                     {% for item in numbers %}
@@ -58,7 +58,7 @@
                     {% endfor %}
                 </ul>
             {% else %}
-                <p class="no-results">目前沒有符合篩選條件的號碼。</p>
+                <p class="no-results">{{ lang.WEB_NO_RESULTS }}</p>
             {% endif %}
         </div>
     </div>

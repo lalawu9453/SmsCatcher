@@ -36,15 +36,14 @@ HEADERS = config['headers']
 UBLOCK_URL = "https://github.com/gorhill/uBlock/releases/download/1.57.2/uBlock0_1.57.2.chromium.zip"
 EXTENSION_PATH = os.path.join(os.getcwd(), "extensions", "ublock_origin")
 
-def setup_adblocker():
+def setup_adblocker(lang_dict):
     """
     檢查、下載並解壓縮 uBlock Origin 廣告攔截外掛。
     """
     if os.path.isdir(EXTENSION_PATH):
-        # print("[*] uBlock Origin 已存在，跳過下載。")
         return
     
-    print("[*] 廣告攔截外掛不存在，正在從 GitHub 下載...")
+    print(lang_dict['ADBLOCK_MISSING'])
     try:
         r = requests.get(UBLOCK_URL, stream=True)
         r.raise_for_status()
@@ -52,20 +51,20 @@ def setup_adblocker():
         with zipfile.ZipFile(io.BytesIO(r.content)) as z:
             os.makedirs(EXTENSION_PATH, exist_ok=True)
             z.extractall(EXTENSION_PATH)
-        print(f"[*] 廣告攔截外掛已成功安裝至: {EXTENSION_PATH}")
+        print(lang_dict['ADBLOCK_INSTALLED'].format(path=EXTENSION_PATH))
         
     except requests.exceptions.RequestException as e:
-        print(f"\n[!] 下載廣告攔截外掛失敗: {e}")
+        print(lang_dict['ADBLOCK_DOWNLOAD_FAIL'].format(e=e))
     except zipfile.BadZipFile:
-        print("\n[!] 下載的檔案非有效的 ZIP 檔案。")
+        print(lang_dict['ADBLOCK_BAD_ZIP'])
     except Exception as e:
-        print(f"\n[!] 安裝廣告攔截外掛時發生未知錯誤: {e}")
+        print(lang_dict['ADBLOCK_UNKNOWN_ERROR'].format(e=e))
 
-def create_adblocking_options(user_agent):
+def create_adblocking_options(user_agent, lang_dict):
     """
     建立並回傳一個已載入廣告攔截外掛的 ChromeOptions 物件。
     """
-    setup_adblocker() # 確保外掛已安裝
+    setup_adblocker(lang_dict)
     
     options = Options()
     options.add_argument('--headless')
@@ -75,9 +74,8 @@ def create_adblocking_options(user_agent):
     
     if os.path.isdir(EXTENSION_PATH):
         options.add_argument(f'--load-extension={EXTENSION_PATH}')
-        # print("[*] 已成功載入廣告攔截外掛。")
     else:
-        print("[!] 警告：廣告攔截外掛目錄不存在，瀏覽器將在無攔截模式下運行。")
+        print(lang_dict['ADBLOCK_LOAD_WARN'])
         
     return options
 
@@ -118,19 +116,19 @@ def apply_keyword_filter(numbers, include_keywords, exclude_keywords):
     return filtered_numbers
 
 
-def freereceivesms_check_single_number(number_info, user_agent, service, base_url):
+def freereceivesms_check_single_number(number_info, user_agent, service, base_url, lang_dict):
     """
     檢查單一號碼的函數，使用傳入的 Selenium Service 實例。
     """
     number_url = number_info['url']
     phone_number_text = number_info['number']
-    options = create_adblocking_options(user_agent)
+    options = create_adblocking_options(user_agent, lang_dict)
     
     driver = None
     result = None
     for i in range(2):
         try:
-            print(f"    [THREAD] 檢查號碼: {phone_number_text} ...", end="", flush=True)
+            print(lang_dict['CHECKING_NUMBER'].format(number=phone_number_text), end="", flush=True)
             driver = webdriver.Chrome(service=service, options=options)
             driver.set_page_load_timeout(30)
             driver.get(number_url)
@@ -146,45 +144,45 @@ def freereceivesms_check_single_number(number_info, user_agent, service, base_ur
                 time_element_sm = latest_row.select_one('.d-block.d-lg-none.ml-2')
                 for item in message_rows:
                      item_element = item.select_one('.col-lg-8 div')
-                     message_rows_contents.append(item_element.get_text(strip=True) if item_element else "無法讀取簡訊內容。")
+                     message_rows_contents.append(item_element.get_text(strip=True) if item_element else lang_dict['CANNOT_READ_SMS'])
                 time_text = ''
                 if time_element_lg:
                     time_text = time_element_lg.get_text(strip=True)
                 elif time_element_sm:
                     time_text = time_element_sm.get_text(strip=True)
                 sms_content_element = latest_row.select_one('.col-lg-8 div')
-                sms_content = sms_content_element.get_text(strip=True) if sms_content_element else "無法讀取簡訊內容。"
+                sms_content = sms_content_element.get_text(strip=True) if sms_content_element else lang_dict['CANNOT_READ_SMS']
                 if time_text and is_within_last_hour(time_text):
                     if len(sms_content) > 80 and (sms_content.endswith('==') or sms_content.endswith('=')):
-                        sms_content = " 【注意：內容可能被網站加密，請在瀏覽器中確認】"+sms_content
-                    print(f"  -> \033[92m找到活躍號碼 (最新訊息: {time_text})\033[0m")
+                        sms_content = lang_dict['SMS_CONTENT_ENCRYPTED'] + sms_content
+                    print(lang_dict['FOUND_ACTIVE_NUMBER'].format(time=time_text))
                     result = {'number': phone_number_text, 'url': number_url, 'last_sms': sms_content, 'smss': message_rows_contents}
                 else:
-                    print(f"  -> 不活躍 (最新訊息: {time_text})")
+                    print(lang_dict['INACTIVE_NUMBER'].format(time=time_text))
             else:
-                print("  -> 找不到訊息列。")
+                print(lang_dict['NO_MESSAGE_ROWS'])
         except WebDriverException as e:
-            print(f"  -> \033[91mSelenium 讀取失敗: {e}\033[0m")
+            print(lang_dict['SELENIUM_READ_FAIL'].format(e=e))
         except Exception as e:
-            print(f"  -> 檢查 {phone_number_text} 失敗: {e}")
+            print(lang_dict['CHECK_NUMBER_FAIL'].format(number=phone_number_text, e=e))
         finally:
             if driver:
                 driver.quit()
         time.sleep(5)
     return result
 
-def freereceivesms_find_active_numbers(CHROME_SERVICE, base_url, country_code=COUNTRY_CODE, page=PAGE_INDEX):
+def freereceivesms_find_active_numbers(CHROME_SERVICE, base_url, lang_dict, country_code=COUNTRY_CODE, page=PAGE_INDEX):
     """
     取得所有號碼列表，然後使用執行緒池併發檢查號碼。
     """
-    print(f"[*] 正在使用 Selenium 搜尋 {country_code.upper()} 國碼的號碼...")
+    print(lang_dict['SEARCHING_NUMBERS_SELENIUM'].format(country=country_code.upper()))
     numbers_to_check = []
     country_page_url = f"{base_url}/{country_code}/{page}/"
-    print(f"[*] 目標國家頁面: {country_page_url}")
+    print(lang_dict['TARGET_COUNTRY_PAGE'].format(url=country_page_url))
     driver = None
     try:
-        options = create_adblocking_options(HEADERS["User-Agent"])
-        print("[*] 正在載入國家頁面以取得號碼清單...")
+        options = create_adblocking_options(HEADERS["User-Agent"], lang_dict)
+        print(lang_dict['LOADING_COUNTRY_PAGE'])
         driver = webdriver.Chrome(service=CHROME_SERVICE, options=options)
         driver.set_page_load_timeout(30)
         driver.get(country_page_url)
@@ -192,7 +190,7 @@ def freereceivesms_find_active_numbers(CHROME_SERVICE, base_url, country_code=CO
         soup = BeautifulSoup(driver.page_source, 'html.parser')
         number_boxes = soup.select('.number-boxes-item')
         if not number_boxes:
-            print("[!] 在國家頁面上找不到任何號碼。網站結構可能已更改或載入失敗。 ")
+            print(lang_dict['NO_NUMBERS_FOUND_ON_PAGE'])
             return []
         for box in number_boxes:
             link_tag = box.find('a', class_='btn-outline-info')
@@ -202,51 +200,51 @@ def freereceivesms_find_active_numbers(CHROME_SERVICE, base_url, country_code=CO
             number_url = f"{base_url}{number_path}"
             phone_number_text = box.find('h4').get_text(strip=True) if box.find('h4') else "N/A"
             numbers_to_check.append({'number': phone_number_text, 'url': number_url})
-        print(f"[*] 成功找到 {len(numbers_to_check)} 個號碼，開始併發檢查...")
+        print(lang_dict['FOUND_NUMBERS_CONCURRENT_CHECK'].format(count=len(numbers_to_check)))
     except WebDriverException as e:
-        print(f"\n[!] 載入國家頁面失敗: {e}")
+        print(lang_dict['LOAD_COUNTRY_PAGE_FAIL'].format(e=e))
         return None
     except Exception as e:
-        print(f"\n[!] 載入國家頁面發生一般錯誤: {e}")
+        print(lang_dict['LOAD_COUNTRY_PAGE_GENERAL_ERROR'].format(e=e))
         return None
     finally:
         if driver:
             driver.quit()
     raw_active_numbers = []
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        future_to_number = {executor.submit(freereceivesms_check_single_number, num_info, HEADERS['User-Agent'], CHROME_SERVICE, base_url): num_info for num_info in numbers_to_check}
+        future_to_number = {executor.submit(freereceivesms_check_single_number, num_info, HEADERS['User-Agent'], CHROME_SERVICE, base_url, lang_dict): num_info for num_info in numbers_to_check}
         for future in as_completed(future_to_number):
             result = future.result()
             if result:
                 raw_active_numbers.append(result)
-    print(f"\n[*] 搜尋完畢。總共找到 {len(raw_active_numbers)} 個活躍號碼。")
+    print(lang_dict['SEARCH_COMPLETE'].format(count=len(raw_active_numbers)))
     return raw_active_numbers
 
-def receivesmss_check_single_number(number_info, user_agent, service, base_url):
+def receivesmss_check_single_number(number_info, user_agent, service, base_url, lang_dict):
     """
     使用 Selenium 檢查 receive-smss.com 的單一號碼。
     """
     number_url = number_info['url']
     phone_number_text = number_info['number']
-    options = create_adblocking_options(user_agent)
+    options = create_adblocking_options(user_agent, lang_dict)
     
     driver = None
     result = None
     try:
-        print(f"    [THREAD] 檢查號碼: {phone_number_text} ...", end="", flush=True)
+        print(lang_dict['CHECKING_NUMBER'].format(number=phone_number_text), end="", flush=True)
         driver = webdriver.Chrome(service=service, options=options)
         driver.set_page_load_timeout(30)
         driver.get(number_url)
         
         message_row_selector = 'div.row.border-bottom.py-2'
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, message_row_selector)))
-        time.sleep(2) # 等待頁面可能存在的JS渲染
+        time.sleep(2)
 
         soup = BeautifulSoup(driver.page_source, 'html.parser')
         message_rows = soup.select(message_row_selector)
         
         if not message_rows:
-            print("  -> 找不到訊息列。")
+            print(lang_dict['NO_MESSAGE_ROWS'])
             return None
 
         latest_row = message_rows[0]
@@ -255,33 +253,33 @@ def receivesmss_check_single_number(number_info, user_agent, service, base_url):
 
         if time_text and is_within_last_hour(time_text):
             sms_content_element = latest_row.select_one('div.col-md-8')
-            sms_content = sms_content_element.get_text(strip=True) if sms_content_element else "無法讀取簡訊內容。"
+            sms_content = sms_content_element.get_text(strip=True) if sms_content_element else lang_dict['CANNOT_READ_SMS']
             all_smss = [row.select_one('div.col-md-8').get_text(strip=True) for row in message_rows if row.select_one('div.col-md-8')]
 
-            print(f"  -> \033[92m找到活躍號碼 (最新訊息: {time_text})\033[0m")
+            print(lang_dict['FOUND_ACTIVE_NUMBER'].format(time=time_text))
             result = {'number': phone_number_text, 'url': number_url, 'last_sms': sms_content, 'smss': all_smss}
         else:
-            print(f"  -> 不活躍 (最新訊息: {time_text})")
+            print(lang_dict['INACTIVE_NUMBER'].format(time=time_text))
     except WebDriverException as e:
-        print(f"  -> \033[91mSelenium 讀取失敗: {e}\033[0m")
+        print(lang_dict['SELENIUM_READ_FAIL'].format(e=e))
     except Exception as e:
-        print(f"  -> 檢查 {phone_number_text} 失敗: {e}")
+        print(lang_dict['CHECK_NUMBER_FAIL'].format(number=phone_number_text, e=e))
     finally:
         if driver:
             driver.quit()
     return result
 
-def receivesmss_find_active_numbers(CHROME_SERVICE, base_url, user_agent):
+def receivesmss_find_active_numbers(CHROME_SERVICE, base_url, user_agent, lang_dict):
     """
     使用 Selenium 從 receive-smss.com 取得號碼列表。
     """
-    print(f"[*] 正在使用 Selenium 搜尋 {base_url} 的號碼...")
+    print(lang_dict['SEARCHING_NUMBERS_BASE_URL'].format(url=base_url))
     numbers_to_check = []
     driver = None
     try:
-        options = create_adblocking_options(user_agent)
+        options = create_adblocking_options(user_agent, lang_dict)
         
-        print("[*] 正在載入主頁面以取得號碼清單...")
+        print(lang_dict['LOADING_COUNTRY_PAGE'])
         driver = webdriver.Chrome(service=CHROME_SERVICE, options=options)
         driver.set_page_load_timeout(40)
 
@@ -289,17 +287,17 @@ def receivesmss_find_active_numbers(CHROME_SERVICE, base_url, user_agent):
             try:
                 driver.get(base_url)
                 
-                print("[*] 正在等待 Cloudflare 驗證...")
+                print(lang_dict['WAITING_CLOUDFLARE'])
                 WebDriverWait(driver, 60).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, ".number-boxes > a"))
                 )
-                print("[*] Cloudflare 驗證通過，頁面已載入。")
+                print(lang_dict['CLOUDFLARE_PASS'])
 
                 soup = BeautifulSoup(driver.page_source, 'html.parser')
                 number_links = soup.select('.number-boxes > a')
 
                 if number_links:
-                    print(f"[*] 第 {attempt + 1} 次嘗試成功找到號碼連結。")
+                    print(lang_dict['FOUND_LINK_SUCCESS'].format(attempt=attempt + 1))
                     for link in number_links:
                         number_path = link.get('href')
                         if number_path:
@@ -309,20 +307,20 @@ def receivesmss_find_active_numbers(CHROME_SERVICE, base_url, user_agent):
                             numbers_to_check.append({'number': phone_number_text, 'url': number_url})
                     break
                 else:
-                    print(f"[!] 第 {attempt + 1} 次嘗試在主頁上找不到任何號碼。")
+                    print(lang_dict['NO_LINK_ON_ATTEMPT'].format(attempt=attempt + 1))
                     driver.refresh()
             except WebDriverException as e:
-                print(f"\n[!] 第 {attempt + 1} 次嘗試載入主頁面或等待元素時發生錯誤: {e}")
+                print(lang_dict['LOAD_MAIN_PAGE_ATTEMPT_FAIL'].format(attempt=attempt + 1, e=e))
                 driver.refresh()
 
         if not numbers_to_check:
-            print("[!] 在 3 次嘗試後，仍然無法在主頁上找到任何號碼。")
+            print(lang_dict['NO_NUMBERS_AFTER_RETRIES'])
             return []
 
-        print(f"[*] 成功找到 {len(numbers_to_check)} 個號碼，開始併發檢查...")
+        print(lang_dict['FOUND_NUMBERS_CONCURRENT_CHECK'].format(count=len(numbers_to_check)))
 
     except Exception as e:
-        print(f"\n[!] 載入主頁面發生一般錯誤: {e}")
+        print(lang_dict['LOAD_MAIN_PAGE_GENERAL_ERROR'].format(e=e))
         return []
     finally:
         if driver:
@@ -330,27 +328,27 @@ def receivesmss_find_active_numbers(CHROME_SERVICE, base_url, user_agent):
 
     raw_active_numbers = []
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        future_to_number = {executor.submit(receivesmss_check_single_number, num_info, user_agent, CHROME_SERVICE, base_url): num_info for num_info in numbers_to_check}
+        future_to_number = {executor.submit(receivesmss_check_single_number, num_info, user_agent, CHROME_SERVICE, base_url, lang_dict): num_info for num_info in numbers_to_check}
         for future in as_completed(future_to_number):
             result = future.result()
             if result:
                 raw_active_numbers.append(result)
     
-    print(f"\n[*] 搜尋完畢。總共找到 {len(raw_active_numbers)} 個活躍號碼。")
+    print(lang_dict['SEARCH_COMPLETE'].format(count=len(raw_active_numbers)))
     return raw_active_numbers
 
-def tempnumber_check_single_number(number_info, user_agent, service, base_url):
+def tempnumber_check_single_number(number_info, user_agent, service, base_url, lang_dict):
     """
     使用 Selenium 檢查 temp-number.com 的單一號碼。
     """
     number_url = number_info['url']
     phone_number_text = number_info['number']
-    options = create_adblocking_options(user_agent)
+    options = create_adblocking_options(user_agent, lang_dict)
     
     driver = None
     result = None
     try:
-        print(f"    [THREAD] 檢查號碼 (Temp-Number): {phone_number_text} ...", end="", flush=True)
+        print(lang_dict['CHECKING_NUMBER_TEMP'].format(number=phone_number_text), end="", flush=True)
         driver = webdriver.Chrome(service=service, options=options)
         driver.set_page_load_timeout(40)
         driver.get(number_url)
@@ -363,7 +361,7 @@ def tempnumber_check_single_number(number_info, user_agent, service, base_url):
         message_rows = soup.select(message_row_selector)
         
         if not message_rows:
-            print("  -> 找不到訊息列。")
+            print(lang_dict['NO_MESSAGE_ROWS'])
             return None
 
         latest_row = message_rows[0]
@@ -372,55 +370,54 @@ def tempnumber_check_single_number(number_info, user_agent, service, base_url):
 
         if time_text and is_within_last_hour(time_text):
             sms_content_element = latest_row.select_one('div.direct-chat-text')
-            sms_content = sms_content_element.get_text(strip=True) if sms_content_element else "無法讀取簡訊內容。"
+            sms_content = sms_content_element.get_text(strip=True) if sms_content_element else lang_dict['CANNOT_READ_SMS']
             
             all_smss = [row.select_one('div.direct-chat-text').get_text(strip=True) for row in message_rows if row.select_one('div.direct-chat-text')]
 
-            print(f"  -> \033[92m找到活躍號碼 (最新訊息: {time_text})\033[0m")
+            print(lang_dict['FOUND_ACTIVE_NUMBER'].format(time=time_text))
             result = {'number': phone_number_text, 'url': number_url, 'last_sms': sms_content, 'smss': all_smss}
         else:
-            print(f"  -> 不活躍 (最新訊息: {time_text})")
+            print(lang_dict['INACTIVE_NUMBER'].format(time=time_text))
             
     except WebDriverException as e:
-        print(f"  -> Selenium 讀取時發生超時或錯誤: {str(e).splitlines()[0]}")
+        print(lang_dict['SELENIUM_TIMEOUT_ERROR'].format(e=str(e).splitlines()[0]))
     except Exception as e:
-        print(f"  -> 檢查 {phone_number_text} 失敗: {e}")
+        print(lang_dict['CHECK_NUMBER_FAIL'].format(number=phone_number_text, e=e))
     finally:
         if driver:
             driver.quit()
     return result
 
-def tempnumber_find_active_numbers(CHROME_SERVICE, base_url, user_agent):
+def tempnumber_find_active_numbers(CHROME_SERVICE, base_url, user_agent, lang_dict):
     """
     使用 Selenium 從 temp-number.com 取得號碼列表。
     """
-    print(f"[*] 正在使用 Selenium 搜尋 {base_url} 的號碼...")
+    print(lang_dict['SEARCHING_NUMBERS_BASE_URL'].format(url=base_url))
     numbers_to_check = []
     driver = None
-    # 特化 URL 結構
     country_url = f"{base_url.rstrip('/')}/countries/United-States"
-    print(f"[*] 目標國家頁面 (Temp-Number): {country_url}")
+    print(lang_dict['TARGET_COUNTRY_PAGE_TEMP'].format(url=country_url))
 
     try:
-        options = create_adblocking_options(user_agent)
+        options = create_adblocking_options(user_agent, lang_dict)
         
-        print("[*] 正在載入國家頁面以取得號碼清單 (temp-number.com)...")
+        print(lang_dict['LOADING_COUNTRY_PAGE_TEMP'])
         driver = webdriver.Chrome(service=CHROME_SERVICE, options=options)
         driver.set_page_load_timeout(60)
         driver.get(country_url)
 
-        print("[*] 正在等待 temp-number.com 頁面載入...")
+        print(lang_dict['WAITING_PAGE_LOAD_TEMP'])
         WebDriverWait(driver, 30).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "a.country-link"))
         )
-        print("[*] 頁面載入完畢，開始解析號碼...")
+        print(lang_dict['PAGE_LOADED_PARSING'])
         time.sleep(3)
 
         soup = BeautifulSoup(driver.page_source, 'html.parser')
         number_links = soup.select("a.country-link")
         
         if not number_links:
-            print("[!] 在 temp-number.com 上找不到任何號碼連結。")
+            print(lang_dict['NO_NUMBERS_FOUND_ON_PAGE_TEMP'])
             return []
 
         for link in number_links:
@@ -435,19 +432,19 @@ def tempnumber_find_active_numbers(CHROME_SERVICE, base_url, user_agent):
                 if phone_number_text.startswith('+'):
                     numbers_to_check.append({'number': phone_number_text, 'url': number_url})
 
-        print(f"[*] 成功找到 {len(numbers_to_check)} 個號碼，開始併發檢查...")
+        print(lang_dict['FOUND_NUMBERS_CONCURRENT_CHECK'].format(count=len(numbers_to_check)))
 
     except Exception as e:
-        print(f"\n[!] 載入 temp-number.com 主頁面或等待元素時發生錯誤: {e}")
+        print(lang_dict['LOAD_MAIN_PAGE_GENERAL_ERROR_TEMP'].format(e=e))
         if driver:
             debug_path = "temp_number_debug.html"
-            print(f"\n--- 正在將頁面原始碼寫入 {debug_path} (偵錯用) ---")
+            print(lang_dict['WRITING_DEBUG_FILE'].format(path=debug_path))
             try:
                 with open(debug_path, "w", encoding="utf-8") as f:
                     f.write(driver.page_source)
-                print(f"--- 寫入完成 --- ")
+                print(lang_dict['WRITE_DEBUG_FILE_DONE'])
             except Exception as write_e:
-                print(f"--- 寫入偵錯檔案時發生錯誤: {write_e} ---")
+                print(lang_dict['WRITE_DEBUG_FILE_ERROR'].format(e=write_e))
         return []
     finally:
         if driver:
@@ -455,16 +452,16 @@ def tempnumber_find_active_numbers(CHROME_SERVICE, base_url, user_agent):
 
     raw_active_numbers = []
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        future_to_number = {executor.submit(tempnumber_check_single_number, num_info, user_agent, CHROME_SERVICE, base_url): num_info for num_info in numbers_to_check}
+        future_to_number = {executor.submit(tempnumber_check_single_number, num_info, user_agent, CHROME_SERVICE, base_url, lang_dict): num_info for num_info in numbers_to_check}
         for future in as_completed(future_to_number):
             result = future.result()
             if result:
                 raw_active_numbers.append(result)
     
-    print(f"\n[*] temp-number.com 搜尋完畢。總共找到 {len(raw_active_numbers)} 個活躍號碼。")
+    print(lang_dict['SEARCH_COMPLETE_TEMP'].format(count=len(raw_active_numbers)))
     return raw_active_numbers
 
-def scrape_all_sites(CHROME_SERVICE, target_urls):
+def scrape_all_sites(CHROME_SERVICE, target_urls, lang_dict):
     """
     遍歷 target_urls 列表，並為每個 URL 呼叫對應的爬蟲函式。
     """
@@ -473,41 +470,40 @@ def scrape_all_sites(CHROME_SERVICE, target_urls):
     user_agent = config.get('headers', {}).get('User-Agent', 'Mozilla/5.0')
 
     all_results = []
-    print(f"[*] 開始遍歷 {len(target_urls)} 個目標網站...")
+    print(lang_dict['TRAVERSING_SITES_START'].format(count=len(target_urls)))
 
     for url in target_urls:
-        print(f"\n--- 正在處理網站: {url} ---")
-        result_key = url.split('.')[1] if '.' in url else url
+        print(lang_dict['PROCESSING_SITE'].format(url=url))
         
         if "freereceivesms" in url:
             try:
-                numbers = freereceivesms_find_active_numbers(CHROME_SERVICE, base_url=url, country_code=country_code, page=page_index)
+                numbers = freereceivesms_find_active_numbers(CHROME_SERVICE, base_url=url, lang_dict=lang_dict, country_code=country_code, page=page_index)
                 if numbers:
                     for number in numbers:
                         number['source'] = 'Free-Receive-Sms'
                     all_results.extend(numbers)
             except Exception as e:
-                print(f"[!] 處理 {url} 時發生錯誤: {e}")
+                print(lang_dict['PROCESS_SITE_ERROR'].format(url=url, e=e))
         elif "receive-smss" in url:
             try:
-                numbers = receivesmss_find_active_numbers(CHROME_SERVICE, base_url=url, user_agent=user_agent)
+                numbers = receivesmss_find_active_numbers(CHROME_SERVICE, base_url=url, user_agent=user_agent, lang_dict=lang_dict)
                 if numbers:
                     for number in numbers:
                         number['source'] = 'Receive-Sms'
                     all_results.extend(numbers)
             except Exception as e:
-                print(f"[!] 處理 {url} 時發生錯誤: {e}")
+                print(lang_dict['PROCESS_SITE_ERROR'].format(url=url, e=e))
         elif "temp-number" in url:
             try:
-                numbers = tempnumber_find_active_numbers(CHROME_SERVICE, base_url=url, user_agent=user_agent)
+                numbers = tempnumber_find_active_numbers(CHROME_SERVICE, base_url=url, user_agent=user_agent, lang_dict=lang_dict)
                 if numbers:
                     for number in numbers:
                         number['source'] = 'Temp-Number'
                     all_results.extend(numbers)
             except Exception as e:
-                print(f"[!] 處理 {url} 時發生錯誤: {e}")
+                print(lang_dict['PROCESS_SITE_ERROR'].format(url=url, e=e))
         else:
-            print(f"[!] 警告：找不到為 {url} 設定的解析器。 ")
+            print(lang_dict['PARSER_NOT_FOUND'].format(url=url))
 
-    print(f"\n[*] 所有網站處理完畢，總共從 {len(target_urls)} 個網站中收集到 {len(all_results)} 個活躍號碼。 ")
+    print(lang_dict['ALL_SITES_DONE'].format(count=len(target_urls), total=len(all_results)))
     return all_results

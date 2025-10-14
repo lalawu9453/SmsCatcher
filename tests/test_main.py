@@ -36,4 +36,4 @@ def test_home_page_loads(client, mocker):
     assert response.status_code == 200
     # 檢查頁面 h1 標題中的中文字串是否存在，並使用 utf-8 編碼
     assert "活躍簡訊號碼".encode('utf-8') in response.data
-    assert "美國".encode('utf-8') in response.data # 根據使用者回饋，檢查預設國家「美國」
+    assert b"United States" in response.data
