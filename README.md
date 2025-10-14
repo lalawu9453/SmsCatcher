@@ -110,7 +110,7 @@ except (NotebookAccessError, SecretNotFoundError):
   ng_token = NGROK_AUTH_TOKEN
 
 !uv sync
-!uv run python main.py --ngrok_token $ng_token
+!uv run python main.py --ngrok_token $ng_token --web top2
 ```
 
 ## **💡 優化分析總結 (Optimization Summary)**
