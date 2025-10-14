@@ -464,46 +464,41 @@ def tempnumber_find_active_numbers(CHROME_SERVICE, base_url, user_agent):
     print(f"\n[*] temp-number.com 搜尋完畢。總共找到 {len(raw_active_numbers)} 個活躍號碼。")
     return raw_active_numbers
 
-def scrape_all_sites(CHROME_SERVICE):
+def scrape_all_sites(CHROME_SERVICE, target_urls):
     """
-    遍歷 config.toml 中的所有 base_urls，並為每個 URL 呼叫對應的爬蟲函式。
+    遍歷 target_urls 列表，並為每個 URL 呼叫對應的爬蟲函式。
     """
-    with open("config.toml", "rb") as f:
-        config = tomli.load(f)
-    
-    base_urls = config.get('general', {}).get('base_urls', [])
     country_code = config.get('general', {}).get('country_code', 'us')
     page_index = config.get('general', {}).get('page_index', 1)
     user_agent = config.get('headers', {}).get('User-Agent', 'Mozilla/5.0')
 
     all_results = []
-    print(f"[*] 開始遍歷 {len(base_urls)} 個網站...")
+    print(f"[*] 開始遍歷 {len(target_urls)} 個目標網站...")
 
-    for url in base_urls:
+    for url in target_urls:
         print(f"\n--- 正在處理網站: {url} ---")
-        if "freereceivesms.com" in url:
+        result_key = url.split('.')[1] if '.' in url else url
+        
+        if "freereceivesms" in url:
             try:
                 numbers = freereceivesms_find_active_numbers(CHROME_SERVICE, base_url=url, country_code=country_code, page=page_index)
                 if numbers:
                     for number in numbers:
-                        number['source'] = 'FreeReceiveSMS'
+                        number['source'] = 'Free-Receive-Sms'
                     all_results.extend(numbers)
             except Exception as e:
                 print(f"[!] 處理 {url} 時發生錯誤: {e}")
-        elif "receive-smss.com" in url:
+        elif "receive-smss" in url:
             try:
-                # 使用 Selenium 進行初始頁面加載
-                print(f"[*] 正在使用 Selenium 搜尋 {url} 的號碼...")
                 numbers = receivesmss_find_active_numbers(CHROME_SERVICE, base_url=url, user_agent=user_agent)
                 if numbers:
                     for number in numbers:
-                        number['source'] = 'Receive-SMSS'
+                        number['source'] = 'Receive-Sms'
                     all_results.extend(numbers)
             except Exception as e:
                 print(f"[!] 處理 {url} 時發生錯誤: {e}")
-        elif "temp-number.com" in url:
+        elif "temp-number" in url:
             try:
-                print(f"[*] 正在使用 Selenium 搜尋 {url} 的號碼...")
                 numbers = tempnumber_find_active_numbers(CHROME_SERVICE, base_url=url, user_agent=user_agent)
                 if numbers:
                     for number in numbers:
@@ -514,5 +509,5 @@ def scrape_all_sites(CHROME_SERVICE):
         else:
             print(f"[!] 警告：找不到為 {url} 設定的解析器。 ")
 
-    print(f"\n[*] 所有網站處理完畢，總共從 {len(base_urls)} 個網站中收集到 {len(all_results)} 個活躍號碼。 ")
+    print(f"\n[*] 所有網站處理完畢，總共從 {len(target_urls)} 個網站中收集到 {len(all_results)} 個活躍號碼。 ")
     return all_results

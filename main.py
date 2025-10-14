@@ -61,14 +61,14 @@ cached_data = {
     "timestamp": 0
 }
 
-def update_cache():
+def update_cache(target_urls):
     """
     在背景執行爬蟲並更新快取資料。
     """
     global cached_data
     while True:
         print("\n--- [背景更新] 開始更新資料 ---\n")
-        raw_numbers = scrape_all_sites(CHROME_SERVICE)
+        raw_numbers = scrape_all_sites(CHROME_SERVICE, target_urls)
         cached_data["raw_numbers"] = raw_numbers
         cached_data["timestamp"] = time.time()
         
@@ -164,6 +164,52 @@ def home():
 
 # --- 主程式執行區塊 ---
 if __name__ == '__main__':
+    # --- 讀取設定檔中的 ngrok token 作為預設值 ---
+    try:
+        with open("config.toml", "rb") as f:
+            config = tomli.load(f)
+        default_ngrok_token = config.get('ngrok_auth_token', '')
+    except FileNotFoundError:
+        default_ngrok_token = ''
+
+    # --- 設定命令列參數解析 ---
+    parser = argparse.ArgumentParser(
+        description="臨時簡訊接收與監控工具。",
+        formatter_class=argparse.RawTextHelpFormatter # 保持換行格式
+    )
+    parser.add_argument(
+        '--web', 
+        type=str, 
+        default='all', 
+        choices=['1', '2', '3', 'all'],
+        help=(
+            "指定要爬取的網站:\n"
+            "  1: 只爬取 freereceivesms.com\n"
+            "  2: 爬取 freereceivesms.com 和 temp-number.com\n"
+            "  3: 爬取 receive-smss.com 和 temp-number.com\n"
+            "  all: 爬取設定檔中所有的網站 (預設)"
+        )
+    )
+    parser.add_argument(
+        '--ngrok_token',
+        type=str,
+        default=default_ngrok_token,
+        help="您的 ngrok 認證權杖。如果提供，將會覆寫 config.toml 中的設定。"
+    )
+    args = parser.parse_args()
+
+    # --- 將解析後的值賦給全域變數 ---
+    NGROK_AUTH_TOKEN = args.ngrok_token
+
+    # --- 根據參數決定目標 URL ---
+    url_map = {
+        '1': [BASE_URLS[0]],
+        '2': [BASE_URLS[0], BASE_URLS[2]], # freereceivesms, temp-number
+        '3': [BASE_URLS[1], BASE_URLS[2]], # receive-smss, temp-number
+        'all': BASE_URLS
+    }
+    target_urls = url_map.get(args.web, BASE_URLS)
+
     print("[*] 正在檢查並安裝 ChromeDriver...")
     CHROME_SERVICE = Service(ChromeDriverManager().install())
     print("[*] ChromeDriver 服務已就緒。")
@@ -180,7 +226,7 @@ if __name__ == '__main__':
     print("uv sync")
     print("="*60)
     
-    update_thread = threading.Thread(target=update_cache, daemon=True)
+    update_thread = threading.Thread(target=update_cache, args=(target_urls,), daemon=True)
     update_thread.start()
     
     if NGROK_AUTH_TOKEN:
@@ -189,7 +235,7 @@ if __name__ == '__main__':
             public_url = ngrok.connect(PORT)
             print("="*60)
             print("程式正在啟動...")
-            print(f"目標網站列表: {BASE_URLS}")
+            print(f"目標網站列表: {target_urls}")
             print(f"目標國家: {COUNTRY_CODE}")
             print(f" * 本地網址: http://127.0.0.1:{PORT}")
             print(f" * 手機請訪問此公開網址: \033[92m{public_url}\033[0m")
@@ -204,7 +250,7 @@ if __name__ == '__main__':
     else:
         print("="*60)
         print("程式正在啟動 (本地模式)...")
-        print(f"目標網站列表: {BASE_URLS}")
+        print(f"目標網站列表: {target_urls}")
         print(f"目標國家: {COUNTRY_CODE}")
         print(f" * 本地網址: http://127.0.0.1:{PORT}")
         print("="*60)

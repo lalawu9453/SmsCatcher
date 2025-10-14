@@ -130,10 +130,9 @@ h1 span {
     color: #c0392b;
 }
 
-/* 新增的來源標籤樣式 */
+/* --- 來源標籤樣式 --- */
 .source-tag {
     display: inline-block;
-    background-color: #e74c3c; /* 醒目的紅色 */
     color: #ffffff;
     padding: 2px 8px;
     font-size: 0.75em;
@@ -141,4 +140,19 @@ h1 span {
     border-radius: 10px;
     margin-left: 10px;
     vertical-align: middle;
+}
+
+/* Temp-Number (藍色) */
+.source-tempnumber {
+    background-color: #007bff;
+}
+
+/* Receive-Sms (綠色) */
+.source-receivesms {
+    background-color: #28a745;
+}
+
+/* Free-Receive-Sms (橘色) */
+.source-freereceivesms {
+    background-color: #fd7e14;
 }
