@@ -159,6 +159,55 @@ def home():
         lang=lang_dict  # 將語言字典傳遞給模板
     )
 
+@app.route('/test-ui')
+def test_ui():
+    """
+    渲染一個帶有假資料的測試頁面，用於 UI/UX 驗證。
+    """
+    mock_sms_data = [
+        {
+            'source': 'freereceivesms',
+            'number': '+11234567890',
+            'time': '5 minutes ago',
+            'last_sms': 'Your verification code for [freereceivesms] is 12345. This is a test message.'
+        },
+        {
+            'source': 'receive-sms',
+            'number': '+449876543210',
+            'time': '10 minutes ago',
+            'last_sms': 'Hello from [receive-smss]! Your package will be delivered tomorrow.'
+        },
+        {
+            'source': 'temp-number',
+            'number': '+15555555555',
+            'time': '1 hour ago',
+            'last_sms': '[temp-number] security alert: A new device has been logged into your account.'
+        },
+        {
+            'source': 'freereceivesms',
+            'number': '+11234567890',
+            'time': '2 hours ago',
+            'last_sms': 'Another test message from [freereceivesms].'
+        }
+    ]
+    
+    country_name_map = {'ca': 'Canada', 'us': 'United States', 'gb': 'United Kingdom'}
+    country_name = country_name_map.get(COUNTRY_CODE, COUNTRY_CODE.upper())
+
+    return render_template(
+        'index.html',
+        numbers=mock_sms_data,
+        country_name=country_name,
+        last_updated="UI Test Mode",
+        update_min=99,
+        total_count=len(mock_sms_data),
+        filtered_count=len(mock_sms_data),
+        initial_include=[],
+        initial_exclude=[],
+        initial_mode='none',
+        lang=lang_dict
+    )
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description="Temporary SMS Receiver and Monitor.",
@@ -191,67 +240,82 @@ if __name__ == '__main__':
         choices=['zh', 'en'],
         help="Set the display language for console output (zh/en). Default is zh."
     )
+    parser.add_argument(
+        '--test-ui',
+        action='store_true',
+        help="Run in UI test mode. Starts the server without web scraping."
+    )
     args = parser.parse_args()
 
+    # 語言設定應優先處理
     lang_dict = get_lang(args.lan)
 
-    NGROK_AUTH_TOKEN = args.ngrok_token
-
-    url_map = {
-        '1': [BASE_URLS[0]],
-        '2': [BASE_URLS[1]],
-        '3': [BASE_URLS[2]],
-        'top2': [BASE_URLS[0], BASE_URLS[1]],
-        'all': BASE_URLS
-    }
-    target_urls = url_map.get(args.web, BASE_URLS)
-
-    print(lang_dict['CHECKING_DRIVER'])
-    CHROME_SERVICE = Service(ChromeDriverManager().install())
-    print(lang_dict['DRIVER_READY'])
-
-    if not NGROK_AUTH_TOKEN:
+    if args.test_ui:
         print("="*60)
-        print(lang_dict['NGROK_REMINDER'])
-        print(lang_dict['NGROK_NOT_SET'])
-        print(lang_dict['RUN_LOCAL_MODE'])
+        print("🚀 Running in UI Test Mode!")
+        print("   Background scraping is DISABLED.")
+        print(f"✅ Access the test page at: http://127.0.0.1:{PORT}/test-ui")
         print("="*60)
+    else:
+        # --- 只有在非測試模式下才執行爬蟲和 ngrok 相關邏輯 ---
+        NGROK_AUTH_TOKEN = args.ngrok_token
 
-    print("="*60)
-    print(lang_dict['INSTALL_DEPS'])
-    print("uv sync")
-    print("="*60)
-    
-    update_thread = threading.Thread(target=update_cache, args=(target_urls, lang_dict), daemon=True)
-    update_thread.start()
-    
-    if NGROK_AUTH_TOKEN:
-        try:
-            ngrok.set_auth_token(NGROK_AUTH_TOKEN)
-            public_url = ngrok.connect(PORT)
+        url_map = {
+            '1': [BASE_URLS[0]],
+            '2': [BASE_URLS[1]],
+            '3': [BASE_URLS[2]],
+            'top2': [BASE_URLS[0], BASE_URLS[1]],
+            'all': BASE_URLS
+        }
+        target_urls = url_map.get(args.web, BASE_URLS)
+
+        print(lang_dict['CHECKING_DRIVER'])
+        CHROME_SERVICE = Service(ChromeDriverManager().install())
+        print(lang_dict['DRIVER_READY'])
+
+        if not NGROK_AUTH_TOKEN:
             print("="*60)
-            print(lang_dict['APP_STARTING'])
+            print(lang_dict['NGROK_REMINDER'])
+            print(lang_dict['NGROK_NOT_SET'])
+            print(lang_dict['RUN_LOCAL_MODE'])
+            print("="*60)
+
+        print("="*60)
+        print(lang_dict['INSTALL_DEPS'])
+        print("uv sync")
+        print("="*60)
+        
+        update_thread = threading.Thread(target=update_cache, args=(target_urls, lang_dict), daemon=True)
+        update_thread.start()
+        
+        if NGROK_AUTH_TOKEN:
+            try:
+                ngrok.set_auth_token(NGROK_AUTH_TOKEN)
+                public_url = ngrok.connect(PORT)
+                print("="*60)
+                print(lang_dict['APP_STARTING'])
+                print(lang_dict['TARGET_SITES'].format(urls=target_urls))
+                print(lang_dict['TARGET_COUNTRY'].format(country=COUNTRY_CODE))
+                print(lang_dict['LOCAL_URL'].format(port=PORT))
+                print(lang_dict['PUBLIC_URL'].format(url=public_url))
+                print("="*60)
+                print(lang_dict['BACKGROUND_UPDATE_INFO'].format(minutes=CACHE_DURATION_MINUTES))
+                print(lang_dict['KEEP_WINDOW_OPEN_NGROK'])
+                print("="*60)
+            except Exception as e:
+                print(lang_dict['NGROK_FAIL'].format(e=e))
+                print(lang_dict['FALLBACK_LOCAL'])
+                print("="*60)
+        else:
+            print("="*60)
+            print(lang_dict['APP_STARTING_LOCAL'])
             print(lang_dict['TARGET_SITES'].format(urls=target_urls))
             print(lang_dict['TARGET_COUNTRY'].format(country=COUNTRY_CODE))
             print(lang_dict['LOCAL_URL'].format(port=PORT))
-            print(lang_dict['PUBLIC_URL'].format(url=public_url))
             print("="*60)
             print(lang_dict['BACKGROUND_UPDATE_INFO'].format(minutes=CACHE_DURATION_MINUTES))
-            print(lang_dict['KEEP_WINDOW_OPEN_NGROK'])
-            print("="*60)
-        except Exception as e:
-            print(lang_dict['NGROK_FAIL'].format(e=e))
-            print(lang_dict['FALLBACK_LOCAL'])
-            print("="*60)
-    else:
-        print("="*60)
-        print(lang_dict['APP_STARTING_LOCAL'])
-        print(lang_dict['TARGET_SITES'].format(urls=target_urls))
-        print(lang_dict['TARGET_COUNTRY'].format(country=COUNTRY_CODE))
-        print(lang_dict['LOCAL_URL'].format(port=PORT))
-        print("="*60)
-        print(lang_dict['BACKGROUND_UPDATE_INFO'].format(minutes=CACHE_DURATION_MINUTES))
-        print(lang_dict['KEEP_WINDOW_OPEN_LOCAL'])
-        print("="*60)        
+            print(lang_dict['KEEP_WINDOW_OPEN_LOCAL'])
+            print("="*60)        
     
+    # --- Flask 伺服器在所有模式下都會啟動 ---
     serve(app, host="0.0.0.0", port=PORT)

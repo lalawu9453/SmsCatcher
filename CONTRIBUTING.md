@@ -57,13 +57,25 @@ Use the `pytest` module to run all tests. In a Windows environment, to avoid pat
 
 If you see all test items marked as `PASSED` with no `FAILED` or `ERRORS`, all tests have passed successfully.
 
-### **3. Test Application Startup Parameters**
+### 3. Test Application Startup Parameters
 
 To test the command-line startup parameters of `main.py`, run the main script with the `--help` argument to see all options:
 
 ```bash
 uv run python main.py --help
 ```
+
+#### **UI/UX Interface Testing**
+
+To facilitate rapid front-end UI/UX development and testing, the project includes a lightweight test mode. This mode starts a web server without any background scrapers and provides a test page with mock data.
+
+Use the following command to start it:
+
+```bash
+uv run python main.py --test-ui
+```
+
+After the server starts, visit `http://127.0.0.1:5000/test-ui`. You will see a default list of SMS messages, making it easy to immediately see the effects of your changes to `templates/index.html` or `static/style.css`.
 
 ---
 

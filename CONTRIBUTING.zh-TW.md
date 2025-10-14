@@ -57,13 +57,25 @@ uv pip install pytest pytest-mock
 
 如果您看到所有測試項目都顯示 `PASSED` 且沒有 `FAILED` 或 `ERRORS` 的訊息，代表所有測試都已成功通過。
 
-### **3. 測試應用程式啟動參數**
+### 3. 測試應用程式啟動參數
 
 若要測試 `main.py` 的命令列啟動參數，請直接執行主程式並帶上 `--help` 參數來查看所有選項：
 
 ```bash
 uv run python main.py --help
 ```
+
+#### **UI/UX 介面測試**
+
+為了方便快速進行前端 UI/UX 的開發與測試，專案內建了一個輕量級的測試模式。此模式會啟動一個不含任何背景爬蟲的網頁伺服器，並提供一個包含假資料的測試頁面。
+
+使用以下指令啟動：
+
+```bash
+uv run python main.py --test-ui
+```
+
+伺服器啟動後，請訪問 `http://127.00.1:5000/test-ui`，你將會看到一個預設的簡訊列表，方便你即時調整 `templates/index.html` 或 `static/style.css` 的呈現效果。
 
 ---
 
