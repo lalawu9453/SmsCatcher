@@ -14,14 +14,14 @@
 <strong>繁體中文</strong>  
 </p>
 
-這個專案是一個 Python 應用程式，用於爬取特定網站上的臨時簡訊接收號碼，並利用 **Selenium** 繞過反爬蟲機制，同時使用 **執行緒池 (ThreadPoolExecutor)** 併發檢查多個號碼頁面，以找出最近一小時內有收到新簡訊的「活躍號碼」。
+這個專案是一個 Python 應用程式，用於從**多個來源網站**爬取臨時簡訊接收號碼。它具備以下核心功能：
+
+* **多網站支援**：可同時從 `freereceivesms.com`、`receive-smss.com`、`temp-number.com` 等多個網站獲取號碼與簡訊。
+* **多語言介面**：支援**繁體中文**與**英文**，可透過命令列參數輕鬆切換。
+* **靈活的命令列控制**：允許使用者自訂要爬取的網站、顯示語言，並整合 ngrok 建立公開網址。
+* **高效的併發爬蟲**：利用 **執行緒池 (ThreadPoolExecutor)** 併發檢查多個號碼頁面，以找出活躍號碼。
 
 ![Demo GIF](demo.png)
-
-它提供兩種執行模式：
-
-1. **本地執行 (main.py)**: 適合在本機電腦上運行，可選是否使用 ngrok 建立公開網址。  
-2. **Colab 執行 (main.py --ngrok_token $ng_token)**: 專為 Google Colaboratory 設計，方便在雲端環境中運行並透過 ngrok 快速建立公開網址。
 
 ## **🚀 專案設置 (Setup)**
 
@@ -55,63 +55,60 @@
 
 ## **💻 執行指南 (Execution Guide)**
 
-### **模式一：本地執行 (Local Execution)**
+本專案支援透過命令列參數進行客製化設定，讓您能更靈活地啟動服務。
 
-使用 main.py 在您的本機電腦上執行。
+### **命令列參數 (Command-Line Arguments)**
 
-#### 運行主程式  
-`uv sync`
+您可以使用 `uv run python main.py --help` 來查看所有可用的參數。
 
-`uv run main.py`
+| 參數 | 選項 | 預設值 | 說明 |
+| :--- | :--- | :--- | :--- |
+| `--web` | `1`, `2`, `3`, `top2`, `all` | `all` | **指定要爬取的網站**：<br>• `1`: freereceivesms.com<br>• `2`: receive-smss.com<br>• `3`: temp-number.com<br>• `top2`: 爬取前兩個網站<br>• `all`: 爬取所有網站 |
+| `--lan` | `zh`, `en` | `zh` | **設定顯示語言**：<br>• `zh`: 繁體中文<br>• `en`: 英文 |
+| `--ngrok_token` | `YOUR_TOKEN` | `config.toml` 中的值 | **設定 ngrok 權杖**：<br>直接透過命令列提供您的 ngrok Authtoken，此參數會覆寫 `config.toml` 中的設定。 |
 
-* 如果 config.toml 中的 ngrok\_auth\_token 是**空字串**，程式將以本地模式啟動，您只能透過 http://127.0.0.1:5000 訪問。  
-* 如果 ngrok\_auth\_token **已設定**，程式將同時啟動 Flask 服務和 ngrok 公開網址。
+### **執行範例 (Examples)**
 
-### **模式二：Colab/公開執行 (Colab/Public Execution)**
+#### **1. 基本啟動 (本地模式)**
 
+這會使用預設設定 (爬取所有網站、使用中文介面) 在本地 `http://127.0.0.1:5000` 啟動。
+
+```bash
+uv run python main.py
+```
+
+#### **2. 啟動並建立公開網址**
+
+提供您的 ngrok 權杖，程式將會為您建立一個公開的網址。
+
+```bash
+uv run python main.py --ngrok_token <YOUR_NGROK_TOKEN>
+```
+
+#### **3. 指定爬取網站並切換為英文介面**
+
+只爬取 `receive-smss.com` (`--web 2`)，並將終端與網頁介面都切換為英文 (`--lan en`)。
+
+```bash
+uv run python main.py --web 2 --lan en
+```
+
+#### **4. 在 Google Colab 中執行**
+
+在 Colab 環境中，建議將 ngrok 權杖儲存在 Secrets Manager 中，並透過以下指令執行，即可獲得一個公開的監控網址。
+
+```python
+# 從 Colab Secrets 讀取權杖
+from google.colab import userdata
+ng_token = userdata.get("NGROK_AUTH_TOKEN")
+
+# 執行主程式，爬取所有網站並建立 ngrok 通道
+!uv run python main.py --web all --ngrok_token $ng_token
+```
 <a href="https://colab.research.google.com/github/LayorX/Temporary-SMS-Receiver-Monitor/blob/master/Temporary_SMS_Receiver_Monitor.ipynb" target="_blank"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
-[快速簡單執行Colab](/Temporary_SMS_Receiver_Monitor.ipynb)
+[點此在 Google Colab 中快速執行](/Temporary_SMS_Receiver_Monitor.ipynb)
 
-使用 `!uv run python main.py --ngrok_token $ng_token` 專門在雲端環境中執行，它包含從命令行讀取 ngrok Token 的邏輯。
-#### 全部執行
-**Colab 步驟:**
-
-1. 將您的 ngrok Authtoken 儲存到 Colab 的 Secrets Manager (密鑰管理器) 中，命名為 NGROK\_AUTH\_TOKEN。  
-2. 在 Colab 筆記本中，Run all：
-![](https://i.meee.com.tw/zlunIT2.png)
-
----
-
-#### 自行執行
-```
-# 最安全方法還是在Secrets Manager 中，配置您的 ngrok NGROK_AUTH_TOKEN
-NGROK_AUTH_TOKEN = "" # @param {"type":"string","placeholder":"NGROK_AUTH_TOKEN"}
-
-!git clone https://github.com/LayorX/Temporary-SMS-Receiver-Monitor.git
-%cd Temporary-SMS-Receiver-Monitor
-# 更新套件列表 / Update package list
-!apt-get update
-
-# 下載 Google Chrome 穩定版安裝檔 / Download the stable version of the Google Chrome installer
-!wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-
-# 安裝 .deb 檔案，並修復相依性問題 / Install the .deb file and fix dependency issues
-!apt install --fix-broken -y ./google-chrome-stable_current_amd64.deb
-
-from google.colab import userdata
-from google.colab.userdata import NotebookAccessError,SecretNotFoundError
-
-try:
-  print("【NGROK_AUTH_TOKEN】: Secrets Manager")
-  ng_token = userdata.get("NGROK_AUTH_TOKEN")
-except (NotebookAccessError, SecretNotFoundError):
-  print("【NGROK_AUTH_TOKEN】: Google Colab Code Block")
-  ng_token = NGROK_AUTH_TOKEN
-
-!uv sync
-!uv run python main.py --ngrok_token $ng_token --web top2
-```
 
 ## **💡 優化分析總結 (Optimization Summary)**
 

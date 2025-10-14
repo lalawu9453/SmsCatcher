@@ -10,14 +10,14 @@
 <a href="./README.md"><strong>繁體中文 (Traditional Chinese)</strong></a>  
 </p>
 
-This project is a Python application designed to scrape a specific website for temporary SMS receiver numbers. It uses **Selenium** to bypass anti-bot protections and a **ThreadPoolExecutor** for concurrent checking of multiple number pages to identify "active numbers" that have received a new SMS within the last hour.
+This project is a Python application for scraping temporary SMS receiver numbers from **multiple sources**. It offers the following core features:
+
+* **Multi-Website Support**: Scrapes numbers and messages from multiple sites, including `freereceivesms.com`, `receive-smss.com`, and `temp-number.com`.
+* **Multi-Language Interface**: Supports **English** and **Traditional Chinese**, easily switchable via command-line arguments.
+* **Flexible Command-Line Controls**: Allows users to customize which websites to scrape, set the display language, and integrate with ngrok for public URLs.
+* **Efficient Concurrent Scraping**: Uses a **ThreadPoolExecutor** to concurrently check multiple number pages and identify active numbers.
 
 ![Demo GIF](demo.png)
-
-It offers two execution modes:
-
-1. **Local Execution (main.py)**: For running on your local machine, with the option to use ngrok for a public URL.  
-2. **Colab Execution (main.py --ngrok_token $ng_token)**: Tailored for Google Colaboratory, enabling cloud execution and quick public URL tunneling via ngrok.
 
 ## **🚀 Project Setup**
 
@@ -49,61 +49,60 @@ Edit the config.toml file to suit your needs:
 
 ## **💻 Execution Guide**
 
-### **Mode 1: Local Execution**
+This project supports custom settings via command-line arguments for flexible service startup.
 
-Run main.py on your local machine.
+### **Command-Line Arguments**
 
-#### Run the main application  
-`uv sync`
+You can run `uv run python main.py --help` to see all available arguments.
 
-`uv run main.py`
+| Argument | Options | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `--web` | `1`, `2`, `3`, `top2`, `all` | `all` | **Specify websites to scrape**:<br>• `1`: freereceivesms.com<br>• `2`: receive-smss.com<br>• `3`: temp-number.com<br>• `top2`: Scrape the top 2 websites<br>• `all`: Scrape all websites |
+| `--lan` | `zh`, `en` | `en` | **Set display language**:<br>• `zh`: Traditional Chinese<br>• `en`: English |
+| `--ngrok_token` | `YOUR_TOKEN` | Value from `config.toml` | **Set ngrok token**:<br>Provide your ngrok Authtoken via the command line. This overrides the setting in `config.toml`. |
 
-* If ngrok\_auth\_token in config.toml is **empty**, the program starts in local mode only (http://127.0.0.1:5000).  
-* If the token **is set**, both the Flask service and the ngrok public tunnel will be started.
+### **Execution Examples**
 
-### **Mode 2: Colab/Public Execution**
+#### **1. Basic Start (Local Mode)**
+
+This starts the service locally at `http://127.0.0.1:5000` with default settings (scrape all sites, English interface).
+
+```bash
+uv run python main.py
+```
+
+#### **2. Start with a Public URL**
+
+Provide your ngrok token to create a public URL for the service.
+
+```bash
+uv run python main.py --ngrok_token <YOUR_NGROK_TOKEN>
+```
+
+#### **3. Specify Website and Language**
+
+Scrape only `receive-smss.com` (`--web 2`) and switch the terminal and web interface to Traditional Chinese (`--lan zh`).
+
+```bash
+uv run python main.py --web 2 --lan zh
+```
+
+#### **4. Run in Google Colab**
+
+In a Colab environment, it's recommended to store your ngrok token in the Secrets Manager and run the following command to get a public monitoring URL.
+
+```python
+# Read the token from Colab Secrets
+from google.colab import userdata
+ng_token = userdata.get("NGROK_AUTH_TOKEN")
+
+# Run the main script to scrape all websites and create an ngrok tunnel
+!uv run python main.py --web all --ngrok_token $ng_token
+```
 <a href="https://colab.research.google.com/github/LayorX/Temporary-SMS-Receiver-Monitor/blob/master/Temporary_SMS_Receiver_Monitor.ipynb" target="_blank"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
+[Click here to run quickly in Google Colab](/Temporary_SMS_Receiver_Monitor.ipynb)
 
-[Execute Colab Easily](/Temporary_SMS_Receiver_Monitor.ipynb)
-
-
-Use `!uv run python main.py --ngrok_token $ng_token`, which is set up to read the ngrok token from command-line arguments, ideal for Colab Secrets.
-#### auto colab execute
-**Colab Steps:**
-
-1. Store your ngrok Authtoken in Colab's Secrets Manager, named NGROK\_AUTH\_TOKEN.  
-2. In a Colab notebook cell, execute the following commands (Chrome installation is often necessary in Colab environments)
-
-#### input code by yourself
-```
-# setting NGROK_AUTH_TOKEN
-NGROK_AUTH_TOKEN = "" # @param {"type":"string","placeholder":"NGROK_AUTH_TOKEN"}
-
-# clone
-!git clone https://github.com/LayorX/Temporary-SMS-Receiver-Monitor.git
-%cd Temporary-SMS-Receiver-Monitor
-!apt-get update
-
-# Download the stable version of the Google Chrome installer
-!wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-
-# Install the .deb file and fix dependency issues
-!apt install --fix-broken -y ./google-chrome-stable_current_amd64.deb
-
-from google.colab import userdata
-from google.colab.userdata import NotebookAccessError,SecretNotFoundError
-
-try:
-  print("【NGROK_AUTH_TOKEN】: Secrets Manager")
-  ng_token = userdata.get("NGROK_AUTH_TOKEN")
-except (NotebookAccessError, SecretNotFoundError):
-  print("【NGROK_AUTH_TOKEN】: Google Colab Code Block")
-  ng_token = NGROK_AUTH_TOKEN
-
-!uv sync
-!uv run python main.py --ngrok_token $ng_token --web top2
-```
 
 ## **💡 Optimization Summary**
 

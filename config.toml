@@ -16,7 +16,7 @@ cache_duration_seconds = 1800
 max_workers = 7
 page_index = 1
 # Flask 服務埠號
-port = 5001
+port = 5000
 
 [keywords]
 # 篩選模式: "contains" (包含任一關鍵字) 或 "excludes" (排除任一關鍵字), both, none

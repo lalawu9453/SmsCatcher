@@ -2,6 +2,7 @@
 
 STRINGS = {
     'zh': {
+        'language_code': 'zh-TW',
         # main.py
         'CONFIG_NOT_FOUND': "[致命錯誤] 找不到 config.toml 檔案，請確認檔案是否存在。",
         'CONFIG_READ_SUCCESS': "[配置] 成功從命令行參數讀取 ngrok Token。",
@@ -100,6 +101,7 @@ STRINGS = {
         'WEB_NO_RESULTS': "目前沒有符合篩選條件的號碼。"
     },
     'en': {
+        'language_code': 'en',
         # main.py
         'CONFIG_NOT_FOUND': "[FATAL] config.toml not found. Please ensure the file exists.",
         'CONFIG_READ_SUCCESS': "[Config] Successfully read ngrok Token from command-line arguments.",
