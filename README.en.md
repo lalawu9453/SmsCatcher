@@ -17,7 +17,7 @@ This project is a Python application for scraping temporary SMS receiver numbers
 * **Flexible Command-Line Controls**: Allows users to customize which websites to scrape, set the display language, and integrate with ngrok for public URLs.
 * **Efficient Concurrent Scraping**: Uses a **ThreadPoolExecutor** to concurrently check multiple number pages and identify active numbers.
 
-![Demo GIF](demo.png)
+![Demo GIF](demo_en.png)
 
 ## **🚀 Project Setup**
 
