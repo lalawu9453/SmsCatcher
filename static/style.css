@@ -1,63 +1,144 @@
-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f4f7f9; color: #333; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: flex-start; min-height: 10vh; }
-.container { background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); width: 100%; max-width: 800px; text-align: center; }
-h1 { color: #0056b3; margin-bottom: 10px; }
-h1 span { font-size: 1.2rem; color: #555; vertical-align: middle; }
-p.info { font-size: 0.9em; color: #777; margin-top: 0; margin-bottom: 20px; }
-
-/* 篩選器樣式 */
-.filter-box { background-color: #e6f7ff; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: left; border: 1px solid #b3e0ff; }
-.filter-box label { font-weight: bold; color: #0056b3; display: block; margin-bottom: 5px; margin-top: 10px; }
-.filter-box input[type="text"], .filter-box select { 
-    width: 100%; 
-    padding: 8px; 
-    margin-bottom: 10px; 
-    border: 1px solid #ccc; 
-    border-radius: 4px; 
-    box-sizing: border-box; 
-}
-.filter-box button { 
-    background-color: #007bff; 
-    color: white; 
-    padding: 10px 15px; 
-    border: none; 
-    border-radius: 5px; 
-    cursor: pointer; 
-    font-weight: bold;
-    transition: background-color 0.2s;
-}
-.filter-box button:hover { background-color: #0056b3; }
-
-ul { list-style-type: none; padding: 0; }
-li { 
-    background-color: #e9f5ff; 
-    margin: 15px 0; 
-    padding: 15px; 
-    border-radius: 8px; 
-    border-left: 5px solid #007bff; 
-    text-align: left;
-    transition: transform 0.2s, box-shadow 0.2s; 
-}
-li:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1); }
-a { 
-    text-decoration: none; 
-    color: #007bff; 
-    font-weight: bold; 
-    font-size: 1.2em; 
-    transition: color 0.2s;
-    display: block;
-    margin-bottom: 8px;
-}
-a:hover { color: #0056b3; }
-.sms-content {
-    font-size: 0.95em;
-    color: #343a40;
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: #f4f7f6;
+    color: #333;
+    line-height: 1.6;
     margin: 0;
-    padding: 10px;
-    background-color: #f8f9fa;
-    border: 1px solid #dee2e6;
+    padding: 20px;
+}
+
+.container {
+    max-width: 800px;
+    margin: auto;
+    background: #fff;
+    padding: 20px 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+h1 {
+    color: #2c3e50;
+    border-bottom: 2px solid #e0e0e0;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+h1 span {
+    color: #95a5a6;
+    font-size: 0.7em;
+}
+
+.info {
+    background-color: #ecf0f1;
+    color: #7f8c8d;
+    padding: 10px 15px;
     border-radius: 5px;
+    font-size: 0.9em;
+    margin-bottom: 20px;
+}
+
+.filter-box {
+    background-color: #fafafa;
+    border: 1px solid #e0e0e0;
+    padding: 20px;
+    border-radius: 5px;
+    margin-bottom: 25px;
+}
+
+.filter-box h2 {
+    margin-top: 0;
+    color: #34495e;
+    font-size: 1.2em;
+}
+
+.filter-box label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #555;
+}
+
+.filter-box input[type="text"],
+.filter-box select {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.filter-box button {
+    background-color: #3498db;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.3s;
+}
+
+.filter-box button:hover {
+    background-color: #2980b9;
+}
+
+#results ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+#results li {
+    background: #fdfdfd;
+    border: 1px solid #eee;
+    margin-bottom: 15px;
+    padding: 15px;
+    border-radius: 5px;
+    transition: box-shadow 0.3s;
+}
+
+#results li:hover {
+    box-shadow: 0 1px 5px rgba(0,0,0,0.08);
+}
+
+#results a {
+    font-weight: bold;
+    color: #2980b9;
+    text-decoration: none;
+    font-size: 1.2em;
+}
+
+#results a:hover {
+    text-decoration: underline;
+}
+
+.sms-content {
+    margin-top: 8px;
+    color: #555;
+    white-space: pre-wrap;
     word-wrap: break-word;
 }
-.error, .no-results { font-size: 1.1em; color: #777; font-style: italic; padding: 20px; }
-.error { color: #d9534f; font-weight: bold; }
-.loading { color: #428bca; font-weight: bold; }
+
+.loading, .error, .no-results {
+    text-align: center;
+    padding: 40px;
+    font-size: 1.1em;
+    color: #777;
+}
+
+.error {
+    color: #c0392b;
+}
+
+/* 新增的來源標籤樣式 */
+.source-tag {
+    display: inline-block;
+    background-color: #e74c3c; /* 醒目的紅色 */
+    color: #ffffff;
+    padding: 2px 8px;
+    font-size: 0.75em;
+    font-weight: bold;
+    border-radius: 10px;
+    margin-left: 10px;
+    vertical-align: middle;
+}

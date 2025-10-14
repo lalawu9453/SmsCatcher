@@ -83,3 +83,39 @@ def test_filter_empty_input():
     """測試當輸入為空列表時，應返回空列表。"""
     result = apply_keyword_filter([], ['google'], ['microsoft'])
     assert len(result) == 0
+
+# ==========================================
+# 煙霧測試 (Smoke Test) for Scrapers
+# ==========================================
+
+from scraper_core import tempnumber_find_active_numbers
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+import tomli
+
+def test_tempnumber_scraper_smoke_test():
+    """
+    對 temp-number.com 的爬蟲執行一個基本的煙霧測試。
+    這個測試會實際執行爬蟲，但只驗證它是否能成功完成並返回一個列表，
+    而不檢查列表的具體內容。這有助於捕捉重大的執行錯誤。
+    """
+    print("\n[*] 執行 temp-number.com 爬蟲的煙霧測試...")
+    try:
+        with open("config.toml", "rb") as f:
+            config = tomli.load(f)
+        user_agent = config.get('headers', {}).get('User-Agent', 'Mozilla/5.0')
+        base_url = "https://temp-number.com/"
+        
+        print("[*]   - 初始化 ChromeDriver...")
+        service = Service(ChromeDriverManager().install())
+        
+        print("[*]   - 執行 tempnumber_find_active_numbers...")
+        result = tempnumber_find_active_numbers(service, base_url, user_agent)
+        
+        # 斷言：結果必須是一個列表 (即使是空列表)
+        assert isinstance(result, list)
+        print(f"[*]   - 測試成功，函式回傳了一個列表，長度為 {len(result)}。")
+        
+    except Exception as e:
+        pytest.fail(f"temp-number.com 的煙霧測試因異常而失敗: {e}")
+
