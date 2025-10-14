@@ -10,58 +10,59 @@
 - **目前架構**：
   - **後端**：Python (Flask) + Selenium + BeautifulSoup。
   - **前端**：原生 HTML/CSS/JS，透過 Flask 的 Jinja2 模板引擎渲染。
+  - **啟動方式**：支援透過命令列參數 (`--web`, `--ngrok_token`) 進行客製化設定。
   - **設定**：`config.toml` 集中管理所有可調參數。
-  - **部署**：支援本地運行及透過 `pyngrok` 產生公開網址。
 - **核心功能**：
   - **多網站支援**：已整合 `freereceivesms.com`, `receive-smss.com`, `temp-number.com` 三個網站。
   - **自動廣告攔截**：首次運行時會自動從 GitHub 下載並設定 uBlock Origin 外掛，有效提升爬蟲穩定性與成功率。
-  - **來源標示**：前端介面能清晰標示每則簡訊的來源網站。
+  - **來源標示**：前端介面能清晰標示每則簡訊的來源網站，並以不同顏色區分。
   - **關鍵字篩選**：支援在後端及前端進行關鍵字篩選。
 
 ---
 
 ## 💡 關鍵架構洞察 (Key Architectural Insights)
 
-1.  **解耦設計 (Decoupled Design)**：
-    - `main.py` 專注於 Web 服務和流程控制。
-    - `scraper_core.py` 專注於爬蟲邏輯，並透過 `scrape_all_sites` 函式作為統一入口，根據 URL 分派到對應的爬蟲函式。
-    - `config.toml` 專注於設定。這種分離使得新增或修改爬蟲邏輯時，不需要改動主應用程式。
+1.  **命令列介面 (CLI) 整合**：
+    - 透過 Python 內建的 `argparse` 函式庫，為應用程式提供了清晰、標準化的命令列介面。
+    - 所有啟動參數（如爬取目標、ngrok權杖）都由 `argparse` 統一管理，取代了舊有的、分散的手動 `sys.argv` 解析，大幅提升了程式的穩健性和可維護性。
 
 2.  **可複用的爬蟲工具 (Reusable Scraper Tools)**：
     - **自動廣告攔截器**：`create_adblocking_options()` 提供了一個全自動、跨平台的廣告攔截解決方案。它會自動處理 uBlock Origin 外掛的下載與設定，所有爬蟲函式都應使用此工具來初始化 Selenium，以應對充滿廣告的目標網站。
 
-3.  **可擴展的資料結構 (Scalable Data Structure)**：
-    - 所有爬蟲函式回傳的資料都包含一個 `source` 鍵。這個小設計是前端能夠清晰展示訊息來源的關鍵，也為未來可能的、更複雜的前端邏輯打下基礎。
+3.  **資料驅動的前端樣式 (Data-Driven Frontend Styling)**：
+    - 透過在 `index.html` 模板中動態生成 CSS class (`source-{{ item.source.lower()... }}`），我們將後端傳遞的資料 (`item.source`) 與前端的視覺表現直接掛鉤。
+    - 這種方法讓 CSS 可以針對不同的資料來源定義獨立的樣式（如顏色），使得在未來新增網站來源時，只需增加對應的 CSS 規則即可，無需修改模板邏輯。
 
 ---
 
 ## 開發歷程與問題解決檔案 (Dev Log & Problem Solving)
 
-本次任務是整合 `temp-number.com` 網站，期間遇到數個典型的爬蟲與自動化挑戰，以下是解決過程的記錄：
-
-1.  **挑戰：網站使用 JavaScript 動態載入內容**
-    - **問題**：初期嘗試使用 `web_fetch` 等簡單工具獲取頁面，只能得到靜態的國家列表，無法獲取由 JS 動態產生的電話號碼列表。
-    - **解決方案**：確認必須使用 `Selenium` 模擬真實瀏覽器行為，等待 JS 執行完畢後才能抓取到完整 HTML。專案原有架構已支援 Selenium，因此沿用此技術路線。
-
-2.  **挑戰：Windows 環境下的終端編碼錯誤 (`UnicodeEncodeError`)**
-    - **問題**：在偵錯過程中，嘗試直接 `print(driver.page_source)` 到 Windows 終端機，但因頁面包含特殊字元 (如 `✔`) 而 `cp950` 編碼不支援，導致 `UnicodeEncodeError`，無法看到輸出。
-    - **解決方案**：放棄直接打印到主控台的思路，改為將 `page_source` 以 `UTF-8` 編碼明確寫入一個臨時的 `.html` 檔案。這個方法完全繞過了平台和終端編碼的限制，是更穩健的偵錯手段。
-
-3.  **挑戰：找到正確的 CSS 選取器**
-    - **問題**：初步使用的 CSS 選取器 (`a.stretched-link`) 是錯誤的，導致 `WebDriverWait` 超時，爬蟲失敗。
-    - **解決方案**：透過上一步生成的 `debug.html` 檔案，仔細分析實際的 HTML 結構，最終確定了正確的選取器 (`a.country-link`) 和號碼文字所在的 `h4` 標籤，成功解決問題。
-
-4.  **挑戰：如何實現可部署、全自動的廣告攔截**
-    - **問題**：`temp-number.com` 網站有大量彈出式廣告，嚴重干擾 Selenium 操作。手動安裝外掛的方案無法用於 Colab 等自動化環境。
+1.  **功能：整合 `temp-number.com` 網站**
+    - **挑戰**：網站使用 JS 動態載入內容，且充滿廣告，直接爬取困難。
     - **解決方案**：
-        1.  研究發現可透過 `options.add_argument('--load-extension=...')` 載入解壓縮的外掛資料夾。
-        2.  為避免手動下載，進一步研究發現可從 uBlock Origin 的官方 GitHub Releases 頁面找到穩定版的 `.zip` 下載連結。
-        3.  最終在 `scraper_core.py` 中建立了 `setup_adblocker` 函式，使用 `requests` 和 `zipfile` 函式庫，實現了在程式首次運行時自動檢查、下載、解壓縮外掛的完整自動化流程。
+        1.  使用 `Selenium` 模擬真實瀏覽器行為以執行 JS。
+        2.  開發了 `setup_adblocker` 函式，實現首次運行時自動下載並載入 uBlock Origin 外掛，從根本上解決了廣告干擾問題。
+        3.  透過將 `page_source` 寫入本地檔案進行偵錯，解決了 Windows 終端 `UnicodeEncodeError` 的問題，並成功找到了正確的 CSS 選取器。
+
+2.  **功能：為來源標籤上色**
+    - **挑戰**：如何根據後端傳來的 `source` 字串，顯示不同的顏色。
+    - **解決方案**：在 Jinja2 模板中，將 `source` 字串轉換為一個 CSS class 名稱，然後在 `.css` 檔案中為每個 class 定義不同的 `background-color`。
+
+3.  **功能：新增命令列啟動參數**
+    - **挑戰**：讓使用者可以靈活選擇要爬取的網站，而不是每次都爬取全部。
+    - **解決方案**：
+        1.  引入 `argparse` 函式庫。
+        2.  重構 `scrape_all_sites` 函式，使其接收一個 `target_urls` 列表作為參數，實現了核心邏輯與資料來源的解耦。
+        3.  在 `main.py` 中設定 `--web` 參數，根據使用者輸入來建構 `target_urls` 列表，並將其傳遞給背景更新執行緒。
+        4.  **重構**：將原有的 `--ngrok_token` 手動解析邏輯也統一整合到 `argparse` 中，使參數管理更為一致和優雅。
 
 ---
 
 ## 交接注意事項 (Handover Notes)
 
+-   **啟動方式**：現在可以透過命令列參數啟動程式。使用 `uv run python main.py --help` 來查看所有可用選項。
+    -   `--web {1,2,all}`：控制要爬取的網站。
+    -   `--ngrok_token YOUR_TOKEN`：在啟動時直接提供 ngrok 權杖。
 -   **自動廣告攔截**：專案現在具備全自動的廣告攔截能力。首次運行時，會自動從 uBlock Origin 的官方 GitHub 下載外掛並解壓縮到 `extensions` 資料夾。此資料夾已被加入 `.gitignore`，不應提交至版本控制。
 -   **新增爬蟲**：若要支援新網站，請遵循 `tempnumber_...` 函式的模式：
     1.  在 `scraper_core.py` 中建立新的 `[sitename]_find_active_numbers` 和 `[sitename]_check_single_number` 函式。

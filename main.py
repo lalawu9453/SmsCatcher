@@ -8,6 +8,7 @@ from waitress import serve
 import threading
 import time
 import json # 處理 JSON 格式的關鍵字清單
+import argparse
 
 import tomli
 from scraper_core import scrape_all_sites, apply_keyword_filter
@@ -181,11 +182,13 @@ if __name__ == '__main__':
         '--web', 
         type=str, 
         default='all', 
-        choices=['1', '2', 'all'],
+        choices=['1', '2','3','top2' 'all'],
         help=(
             "指定要爬取的網站:\n"
-            "  1: 只爬取 freereceivesms.com\n"
-            "  2: 爬取 freereceivesms.com 和 temp-number.com\n"
+            "  1: 只爬取第一個網頁 預設為freereceivesms.com\n"
+            "  2: 只爬取第二個網頁 預設為temp-number.com\n"
+            "  3: 只爬取第三個網頁 預設為receive-smss.com/\n"
+            "  top2: 預設爬取 freereceivesms.com 和 temp-number.com\n"
             "  all: 爬取設定檔中所有的網站 (預設)"
         )
     )
@@ -203,7 +206,9 @@ if __name__ == '__main__':
     # --- 根據參數決定目標 URL ---
     url_map = {
         '1': [BASE_URLS[0]],
-        '2': [BASE_URLS[0], BASE_URLS[2]], # freereceivesms, temp-number
+        '2': [BASE_URLS[1]],
+        '3': [BASE_URLS[2]],
+        'top2': [BASE_URLS[0], BASE_URLS[1]], # freereceivesms, temp-number
         'all': BASE_URLS
     }
     target_urls = url_map.get(args.web, BASE_URLS)
