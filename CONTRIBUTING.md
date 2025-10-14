@@ -1,16 +1,14 @@
-# **🤝 貢獻指南 (Contributing Guide)**
+# **🤝 Contributing Guide**
 
-感謝您對「臨時簡訊接收號碼監控器」專案的興趣！您的貢獻對於提升爬蟲的穩定性和功能擴展至關重要。
-
-Thank you for your interest in the Temporary SMS Receiver Monitor project! Your contributions are vital to enhancing the stability and expanding the features of this scraper.
+**English** • [**繁體中文**](./CONTRIBUTING.zh-TW.md)
 
 ---
 
-## **如何開始 (Getting Started)**
+Thank you for your interest in the Temporary SMS Receiver Monitor project! Your contributions are vital to enhancing the stability and expanding the features of this scraper.
 
-### **1. 設置環境 (Setup Environment)**
+## **Getting Started**
 
-請確保您已安裝所有依賴項：
+### **1. Setup Environment**
 
 Please ensure you have installed all dependencies:
 
@@ -18,54 +16,50 @@ Please ensure you have installed all dependencies:
 uv sync
 ```
 
-### **2. 報告錯誤 (Reporting Bugs)**
+### **2. Reporting Bugs**
 
-如果您發現任何錯誤，例如爬蟲失敗、網站結構變更導致解析錯誤，或是簡訊內容仍被加密，請透過 Issue 追蹤器報告。
+If you encounter any bugs, such as scraping failures, parsing errors due to website structure changes, or SMS content remaining encrypted, please report them via the [Issue tracker](https://github.com/LayorX/Temporary-SMS-Receiver-Monitor/issues).
 
-If you encounter any bugs, such as scraping failures, parsing errors due to website structure changes, or SMS content remaining encrypted, please report them via the Issue tracker.
-
-### **3. 提交變更 (Submitting Changes)**
-
-我們主要接受功能新增、錯誤修復和爬蟲穩定性增強的 Pull Request (PR)。
+### **3. Submitting Changes**
 
 We primarily accept Pull Requests (PRs) for new features, bug fixes, and scraper stability improvements.
 
-*   請先 **Fork** 本專案。 (Fork the repository first.)
-*   為您的變更創建一個新的分支。 (Create a new branch for your changes.)
-*   確保您的程式碼遵循 PEP 8 規範，並在提交前運行測試。 (Ensure your code follows PEP 8 and run tests before committing.)
-*   提交 PR 時，請清楚說明您做了哪些變更以及解決了什麼問題。 (Clearly describe your changes and what issue they resolve in your PR.)
+*   **Fork** the repository first.
+*   Create a new branch for your changes.
+*   Ensure your code follows PEP 8 and run tests before committing.
+*   Clearly describe your changes and what issue they resolve in your PR.
 
 ---
 
-## **🧪 執行測試 (Running Tests)**
+## **🧪 Running Tests**
 
-本專案包含一套自動化測試，以確保程式碼品質和功能穩定。在您提交變更前，請務必在本地端運行測試。
+This project includes an automated test suite to ensure code quality and functional stability. Before submitting your changes, please be sure to run the tests locally.
 
-### **1. 安裝測試依賴 (Install Testing Dependencies)**
+### **1. Install Testing Dependencies**
 
-測試工具並未包含在主要的 `uv sync` 中。請使用以下指令單獨安裝它們：
+Testing tools are not included in the main `uv sync`. Please install them separately using the following command:
 
 ```bash
 uv pip install pytest pytest-mock
 ```
 
-### **2. 運行測試套件 (Run the Test Suite)**
+### **2. Run the Test Suite**
 
-使用 `pytest` 模組來執行所有測試。在 Windows 環境下，為了避免路徑問題並確保使用虛擬環境中的正確 Python 版本，建議使用以下完整指令：
+Use the `pytest` module to run all tests. In a Windows environment, to avoid path issues and ensure you are using the correct Python version from your virtual environment, it is recommended to use the full command:
 
 ```bash
-# 在專案根目錄下執行 (Run from the project root directory)
+# Run from the project root directory
 .venv\Scripts\python.exe -m pytest -v
 ```
 
-*   **單元測試 (Unit Tests)**：這些測試位於 `tests/test_scraper_core.py`，主要驗證 `is_within_last_hour` 等輔助函式的邏輯正確性。
-*   **煙霧測試 (Smoke Tests)**：此類測試（例如 `test_tempnumber_scraper_smoke_test`）會實際執行爬蟲的主要函式，但只驗證其是否能順利完成並回傳正確的資料類型（如 `list`），而不檢查具體內容。這有助於在重構後快速捕捉到致命的執行錯誤。
+*   **Unit Tests**: Located in `tests/test_scraper_core.py`, these primarily verify the logic of helper functions like `is_within_last_hour`.
+*   **Smoke Tests**: Tests like `test_tempnumber_scraper_smoke_test` execute the main scraper functions to verify they complete successfully and return the correct data type (e.g., `list`), without checking the specific content. This helps to quickly catch fatal execution errors after refactoring.
 
-如果您看到所有測試項目都顯示 `PASSED` 且沒有 `FAILED` 或 `ERRORS` 的訊息，代表所有測試都已成功通過。
+If you see all test items marked as `PASSED` with no `FAILED` or `ERRORS`, all tests have passed successfully.
 
-### **3. 測試應用程式啟動參數**
+### **3. Test Application Startup Parameters**
 
-若要測試 `main.py` 的命令列啟動參數，請直接執行主程式並帶上 `--help` 參數來查看所有選項：
+To test the command-line startup parameters of `main.py`, run the main script with the `--help` argument to see all options:
 
 ```bash
 uv run python main.py --help
@@ -73,76 +67,76 @@ uv run python main.py --help
 
 ---
 
-## **✍️ 新增爬蟲撰寫框架 (Framework for Adding New Scrapers)**
+## **✍️ Framework for Adding New Scrapers**
 
-想要整合一個新的簡訊網站嗎？請遵循以下步驟，這將幫助您快速、標準化地完成工作。
+Want to integrate a new SMS website? Follow these steps to get it done quickly and in a standardized way.
 
-### **步驟 1：網站初步分析 (Initial Site Analysis)**
+### **Step 1: Initial Site Analysis**
 
-1.  **打開目標網站**：在您的瀏覽器中打開想要爬取的網站。
-2.  **使用開發者工具**：按下 `F12` 打開開發者工具，選擇「Elements」分頁。
-3.  **觀察網站行為**：
-    *   **內容載入方式**：號碼列表是靜態載入（原始碼中可見）還是動態載入（由 JavaScript 產生）？本專案預設使用 `Selenium`，因此兩者皆可處理。
-    *   **人機驗證**：網站是否有 Cloudflare 保護或 Google reCAPTCHA？這會增加爬取難度，`Selenium` 的長等待時間設定有助於通過部分驗證。
-    *   **廣告干擾**：網站是否有大量彈出式廣告或覆蓋型廣告？我們的 `create_adblocking_options` 函式可以有效應對此問題。
+1.  **Open the Target Site**: Open the website you want to scrape in your browser.
+2.  **Use Developer Tools**: Press `F12` to open developer tools and select the "Elements" tab.
+3.  **Observe Site Behavior**:
+    *   **Content Loading**: Is the number list loaded statically (visible in the source code) or dynamically (generated by JavaScript)? This project uses `Selenium` by default, so both can be handled.
+    *   **Human Verification**: Is the site protected by Cloudflare or Google reCAPTCHA? This increases scraping difficulty, but `Selenium`'s long wait times can help bypass some verifications.
+    *   **Ad Interference**: Does the site have many pop-up or overlay ads? Our `create_adblocking_options` function can effectively handle this.
 
-### **步驟 2：尋找關鍵 CSS 選取器 (Finding Key CSS Selectors)**
+### **Step 2: Finding Key CSS Selectors**
 
-這是最關鍵的一步。您需要為新網站找到一組穩定的 CSS 選取器。使用開發者工具的「Inspect」（左上角的小箭頭圖示）來點擊頁面元素，並在「Elements」面板中找到它們。
+This is the most critical step. You need to find a stable set of CSS selectors for the new site. Use the developer tools' "Inspect" feature (the small arrow icon in the top-left) to click on page elements and find them in the "Elements" panel.
 
-**您需要記錄以下選取器：**
+**You need to record the following selectors:**
 
-1.  **在號碼列表頁面 (Number List Page):**
-    *   `number_links_selector`: 指向**每一個**包含號碼連結的容器元素。 (例如：`a.country-link`)
-    *   `phone_number_text_selector`: 在上述容器中，指向顯示電話號碼文字的元素。 (例如：`h4`)
+1.  **On the Number List Page:**
+    *   `number_links_selector`: Points to **each** container element that holds a number link (e.g., `a.country-link`).
+    *   `phone_number_text_selector`: Within the container above, points to the element displaying the phone number text (e.g., `h4`).
 
-2.  **在單一號碼的訊息頁面 (Single Number's Message Page):**
-    *   `message_rows_selector`: 指向**每一則**訊息的容器元素。 (例如：`div.direct-chat-msg`)
-    *   `time_selector`: 在訊息容器中，指向顯示時間戳的元素。 (例如：`time.direct-chat-timestamp`)
-    *   `content_selector`: 在訊息容器中，指向顯示簡訊內容的元素。 (例如：`div.direct-chat-text`)
+2.  **On a Single Number's Message Page:**
+    *   `message_rows_selector`: Points to **each** message's container element (e.g., `div.direct-chat-msg`).
+    *   `time_selector`: Within the message container, points to the element displaying the timestamp (e.g., `time.direct-chat-timestamp`).
+    *   `content_selector`: Within the message container, points to the element displaying the SMS content (e.g., `div.direct-chat-text`).
 
-### **步驟 3：撰寫爬蟲程式碼 (Writing the Scraper Code)**
+### **Step 3: Writing the Scraper Code**
 
-在 `scraper_core.py` 中，您需要建立兩個函式：
+In `scraper_core.py`, you need to create two functions:
 
-1.  **`[sitename]_find_active_numbers(...)`**: 用於從號碼列表頁面抓取所有號碼，並併發檢查它們。
-2.  **`[sitename]_check_single_number(...)`**: 用於檢查單一號碼頁面，判斷其是否活躍並抓取簡訊。
+1.  **`[sitename]_find_active_numbers(...)`**: To scrape all numbers from the number list page and check them concurrently.
+2.  **`[sitename]_check_single_number(...)`**: To check a single number's page, determine if it's active, and scrape the SMS.
 
-**程式碼框架範本：**
+**Code Framework Template:**
 
 ```python
-# 函式 1: 尋找活躍號碼
+# Function 1: Find Active Numbers
 def [sitename]_find_active_numbers(CHROME_SERVICE, base_url, user_agent):
-    print(f"[*] 正在使用 Selenium 搜尋 {base_url} 的號碼...")
+    print(f"[*] Searching for numbers on {base_url} using Selenium...")
     numbers_to_check = []
     driver = None
     try:
-        # 1. 務必使用廣告攔截器
+        # 1. Always use the adblocker
         options = create_adblocking_options(user_agent)
         driver = webdriver.Chrome(service=CHROME_SERVICE, options=options)
-        driver.get(base_url) # 或特定的國家頁面 URL
+        driver.get(base_url) # Or a specific country page URL
 
-        # 2. 等待號碼列表載入
+        # 2. Wait for the number list to load
         WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.CSS_SELECTOR, "[number_links_selector]")))
         time.sleep(3)
 
-        # 3. 使用 BeautifulSoup 解析頁面
+        # 3. Parse the page with BeautifulSoup
         soup = BeautifulSoup(driver.page_source, 'html.parser')
         number_links = soup.select("[number_links_selector]")
 
-        # 4. 遍歷連結，建立待檢查的號碼資訊
+        # 4. Iterate through links to create a list of numbers to check
         for link in number_links:
-            # ... 根據您找到的選取器解析出號碼和 URL ...
+            # ... Parse the number and URL based on your selectors ...
             numbers_to_check.append({'number': phone_number_text, 'url': number_url})
 
     finally:
         if driver:
             driver.quit()
 
-    # 5. 使用執行緒池併發檢查
+    # 5. Use a thread pool for concurrent checking
     raw_active_numbers = []
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        # 將 [sitename]_check_single_number 傳入
+        # Pass in [sitename]_check_single_number
         future_to_number = {executor.submit([sitename]_check_single_number, num_info, user_agent, CHROME_SERVICE, base_url): num_info for num_info in numbers_to_check}
         for future in as_completed(future_to_number):
             result = future.result()
@@ -150,64 +144,64 @@ def [sitename]_find_active_numbers(CHROME_SERVICE, base_url, user_agent):
                 raw_active_numbers.append(result)
     return raw_active_numbers
 
-# 函式 2: 檢查單一號碼
+# Function 2: Check a Single Number
 def [sitename]_check_single_number(number_info, user_agent, service, base_url):
-    # ... (省略 try/except/finally 結構) ...
+    # ... (omitting try/except/finally structure) ...
     driver = webdriver.Chrome(service=service, options=create_adblocking_options(user_agent))
     driver.get(number_info['url'])
 
-    # 1. 等待訊息列表載入
+    # 1. Wait for the message list to load
     WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.CSS_SELECTOR, "[message_rows_selector]")))
     soup = BeautifulSoup(driver.page_source, 'html.parser')
     message_rows = soup.select("[message_rows_selector]")
 
-    # 2. 解析最新一則訊息的時間
+    # 2. Parse the time of the latest message
     latest_row = message_rows[0]
     time_element = latest_row.select_one("[time_selector]")
     time_text = time_element.get_text(strip=True)
 
-    # 3. 判斷是否活躍，如果活躍則打包回傳結果
+    # 3. If active, package and return the result
     if time_text and is_within_last_hour(time_text):
         sms_content = latest_row.select_one("[content_selector]").get_text(strip=True)
         all_smss = [row.select_one("[content_selector]").get_text(strip=True) for row in message_rows]
         
-        # 4. 必須回傳此標準格式的字典
+        # 4. Must return a dictionary in this standard format
         return {'number': number_info['number'], 'url': number_info['url'], 'last_sms': sms_content, 'smss': all_smss}
-    # ... (省略其餘邏輯)
+    # ... (omitting remaining logic)
 ```
 
-### **步驟 4：整合到核心 (Integrating into the Core)**
+### **Step 4: Integrating into the Core**
 
-1.  打開 `scraper_core.py`。
-2.  找到 `scrape_all_sites` 函式。
-3.  在 `for url in target_urls:` 迴圈中，新增一個 `elif` 區塊來處理您的新網站。
+1.  Open `scraper_core.py`.
+2.  Find the `scrape_all_sites` function.
+3.  In the `for url in target_urls:` loop, add an `elif` block to handle your new site.
 
     ```python
-    elif "[sitename]" in url: # 使用新網站的獨特網域名稱
+    elif "[sitename]" in url: # Use the unique domain name of the new site
         try:
             numbers = [sitename]_find_active_numbers(CHROME_SERVICE, base_url=url, user_agent=user_agent)
             if numbers:
                 for number in numbers:
-                    # ！！！重要：為您的結果打上來源標籤
-                    number['source'] = '[SiteName]' # 例如：'MyNewSite'
+                    # !!! Important: Tag your results with a source label
+                    number['source'] = '[SiteName]' # e.g., 'MyNewSite'
                 all_results.extend(numbers)
         except Exception as e:
-            print(f"[!] 處理 {url} 時發生錯誤: {e}")
+            print(f"[!] An error occurred while processing {url}: {e}")
     ```
 
-### **步驟 5：偵錯與測試 (Debugging and Testing)**
+### **Step 5: Debugging and Testing**
 
-1.  **偵錯**：如果在解析時遇到困難或 `UnicodeEncodeError`，請使用以下技巧將頁面原始碼寫入檔案進行分析：
+1.  **Debugging**: If you encounter parsing difficulties or a `UnicodeEncodeError`, use this trick to write the page source to a file for analysis:
     ```python
     with open("debug.html", "w", encoding="utf-8") as f:
         f.write(driver.page_source)
     ```
-2.  **新增測試**：在 `tests/test_scraper_core.py` 中為您的新爬蟲新增一個煙霧測試，以確保它能穩定運行。複製 `test_tempnumber_scraper_smoke_test` 的結構並替換為您的函式即可。
+2.  **Add a Test**: In `tests/test_scraper_core.py`, add a smoke test for your new scraper to ensure it runs stably. You can copy the structure of `test_tempnumber_scraper_smoke_test` and replace it with your function.
 
 ---
 
-## **❓ 有疑問嗎？ (Questions?)**
+## **❓ Questions?**
 
-如果您對貢獻過程或任何功能有疑問，請隨時在 Issue 追蹤器中提問。
+If you have any questions about the contribution process or any features, feel free to ask in the [Issue tracker](https://github.com/LayorX/Temporary-SMS-Receiver-Monitor/issues).
 
-**期待您的貢獻！(Happy Contributing!)**
+**Happy Contributing!**
